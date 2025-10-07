@@ -1,57 +1,68 @@
-# --- install.py ---
-# Tukang Cek & Pasang Dependensi Otomatis
+# --- installer.py ---
+# VERSI 2.0 - Super Stabil & Modern
 
-import subprocess
 import sys
-import pkg_resources # Library untuk mengecek package yang terinstall
+import subprocess
 
 # --- DAFTAR BELANJA / DEPENDENSI YANG DIBUTUHKAN ---
 REQUIRED_PACKAGES = [
     "google-generativeai",
-    "pywhatkit"
+    "pywhatkit",
+    "setuptools" # Tetap kita pastikan terinstall untuk jaga-jaga
 ]
 
-def check_and_install_packages():
-    """
-    Fungsi untuk mengecek apakah package yang dibutuhkan sudah terinstall.
-    Jika belum, akan otomatis menginstalnya menggunakan pip.
-    """
+def check_package(package_name):
+    """Mengecek satu package menggunakan cara modern."""
+    try:
+        # Python 3.8+ punya importlib.metadata
+        from importlib import metadata
+        metadata.version(package_name)
+        return True
+    except ImportError:
+        # Fallback untuk Python versi lama (kurang direkomendasikan)
+        try:
+            import pkg_resources
+            pkg_resources.get_distribution(package_name)
+            return True
+        except Exception:
+            return False
+    except Exception:
+        return False
+
+def install_package(package_name):
+    """Menginstal satu package menggunakan pip."""
+    try:
+        print(f"📦 Menginstal '{package_name}'...")
+        # Menjalankan perintah 'pip install' dari dalam script
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package_name])
+        print(f"   -> '{package_name}' berhasil diinstal/di-upgrade.")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ GAGAL menginstal '{package_name}'. Error: {e}")
+        return False
+
+def run_installer():
+    """Fungsi utama untuk menjalankan seluruh proses instalasi."""
     print("==============================================")
     print("🔍 Menganalisis dan Memeriksa Dependensi...")
     print("==============================================")
     
-    # Dapatkan daftar package yang sudah terinstall
-    installed_packages = {pkg.key for pkg in pkg_resources.working_set}
-    missing_packages = []
-
+    all_good = True
     for package in REQUIRED_PACKAGES:
-        # Cek apakah package ada di daftar yang sudah terinstall
-        if package not in installed_packages:
-            missing_packages.append(package)
-
-    if not missing_packages:
-        print("✅ Semua dependensi yang dibutuhkan sudah terpasang!")
-        print("----------------------------------------------")
-        return True
-
-    print(f"❗ Ditemukan {len(missing_packages)} dependensi yang belum terpasang.")
+        print(f"   -> Mengecek '{package}'...")
+        if not check_package(package):
+            print(f"   ❗ '{package}' tidak ditemukan atau perlu di-update.")
+            if not install_package(package):
+                all_good = False
     
-    for package in missing_packages:
-        print(f"📦 Menginstal '{package}'...")
-        try:
-            # Menjalankan perintah 'pip install' dari dalam script
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-            print(f"   -> '{package}' berhasil diinstal.")
-        except subprocess.CalledProcessError as e:
-            print(f"❌ GAGAL menginstal '{package}'. Error: {e}")
-            print("   Silakan coba instal manual dengan 'pip install <nama_package>'")
-            return False
-    
-    print("\n✅ Semua dependensi berhasil diinstal!")
     print("----------------------------------------------")
-    return True
+    if all_good:
+        print("✅ Semua dependensi siap!")
+        return True
+    else:
+        print("❌ Beberapa dependensi gagal diinstal. Coba instal manual.")
+        return False
 
 if __name__ == "__main__":
-    # Bagian ini akan berjalan jika install.py dieksekusi langsung
-    check_and_install_packages()
-
+    if not run_installer():
+        sys.exit(1) # Keluar dengan status error jika instalasi gagal
