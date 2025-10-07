@@ -1,82 +1,99 @@
 # --- main.py ---
-# VERSI 6.0 - Arsitektur Final, UI Konsisten & Anti Gagal
+# VERSI 7.0 - Edisi "Semua Jadi Satu" (All-in-One & Super Stabil)
 
 import sys
 import os
 import subprocess
+import time
 
-# --- Langkah #0: Menentukan Lokasi Diri Sendiri (Sangat Penting!) ---
-# Ini membuat script tahu di mana dia berada, jadi nggak akan bingung cari file lain
-# BASE_DIR adalah lokasi folder 'wa/'
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# --- BAGIAN 1: INSTALLER TERINTEGRASI ---
 
-def run_installer():
-    """Mencari dan menjalankan installer.py dengan aman."""
-    installer_path = os.path.join(BASE_DIR, "installer.py")
+# Daftar belanja dengan versi yang "dikunci" untuk menghindari error kompilasi
+REQUIRED_PACKAGES = {
+    "setuptools": None, # Selalu upgrade
+    "google-generativeai": "0.5.4", # Versi ini tidak butuh Rust
+    "pywhatkit": "5.4" # Versi stabil
+}
+
+def print_header(title):
+    """Fungsi untuk menampilkan header yang keren."""
+    print("==============================================")
+    print(f"      {title}      ")
+    print("==============================================")
+
+def handle_dependencies():
+    """Mengecek dan menginstal dependensi langsung dari main.py."""
+    print_header("🚀 Pengecekan Sistem & Dependensi")
+    
+    all_success = True
     try:
-        if not os.path.exists(installer_path):
-            print(f"❌ FATAL: File '{installer_path}' tidak ditemukan!")
-            return False
-        
-        # Menjalankan installer dan menangkap status outputnya
-        result = subprocess.run([sys.executable, installer_path], check=True)
-        return result.returncode == 0
-        
+        # Upgrade pip dulu biar sehat
+        sys.stdout.write("⚙️  Memeriksa 'pip'...")
+        sys.stdout.flush()
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        sys.stdout.write(" -> ✅ OK!\n")
+
+        for package, version in REQUIRED_PACKAGES.items():
+            install_string = f"{package}{f'=={version}' if version else ''}"
+            sys.stdout.write(f"⚙️  Memastikan '{install_string}'...")
+            sys.stdout.flush()
+            
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", install_string],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            sys.stdout.write(" -> ✅ OK!\n")
+            
     except subprocess.CalledProcessError:
-        print("\n❌ Proses instalasi dependensi gagal. Program tidak bisa dilanjutkan.")
+        sys.stdout.write(" -> ❌ GAGAL!\n")
+        all_success = False
+    
+    print("----------------------------------------------")
+    if all_success:
+        print("✨ Semua sistem siap tempur!")
+        return True
+    else:
+        print("❌ Instalasi gagal. Coba periksa koneksi internet.")
         return False
-    except Exception as e:
-        print(f"\n❌ Terjadi error tak terduga saat menjalankan installer: {e}")
-        return False
+
+# --- BAGIAN 2: PROGRAM UTAMA ---
 
 def main():
     """Fungsi utama untuk menjalankan seluruh alur aplikasi."""
     
-    # --- Tampilan Pembuka ---
-    print("==============================================")
-    print("      🚀 Memulai Asisten AI Termux...         ")
-    print("==============================================")
-
-    # --- Langkah #1: Jalankan Installer ---
-    if not run_installer():
+    # Langkah 1: Jalankan Installer dulu
+    if not handle_dependencies():
         sys.exit(1) # Keluar jika instalasi gagal
 
-    # --- Langkah #2: Impor Modul-modul Kita ---
-    # Kita tambahkan path folder 'option' ke path sistem Python
-    # Ini adalah cara paling anti-gagal untuk memastikan modul ditemukan
-    sys.path.append(os.path.join(BASE_DIR, 'option'))
-    
+    # Langkah 2: Impor modul-modul SETELAH instalasi berhasil
+    # Ini trik penting! Jangan import di atas sebelum diinstal.
+    print("\n--- Mengimpor Modul Aplikasi ---")
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'option'))
     try:
         from config_manager import muat_konfigurasi
         from gemini_assistant import initialize_gemini
         from ui_handler import start_menu
+        print("✅ Semua modul berhasil diimpor.")
     except ImportError as e:
-        print(f"\n❌ FATAL: Gagal mengimpor modul dari 'option'. Error: {e}")
-        print("   Pastikan semua file .py dan `__init__.py` ada di dalam folder 'option'.")
+        print(f"\n❌ FATAL: Gagal mengimpor modul. Error: {e}")
         sys.exit(1)
 
-    # --- Langkah #3: Muat Konfigurasi ---
+    # Langkah 3: Muat Konfigurasi
     print("\n--- Memuat Konfigurasi ---")
     config = muat_konfigurasi()
     if not config:
         print("❌ Gagal memuat konfigurasi. Program berhenti.")
         sys.exit(1)
     
-    # --- Langkah #4: Hubungkan ke Gemini AI ---
+    # Langkah 4: Hubungkan ke Gemini AI
     print("\n--- Menghubungkan ke Gemini AI ---")
     api_key = config.get("gemini_api_key")
-    if not api_key:
-        print("❌ Kunci API tidak ditemukan di config. Jalankan ulang setup.")
-        sys.exit(1)
-        
     gemini_model = initialize_gemini(api_key)
     if not gemini_model:
         print("❌ Gagal terhubung ke Gemini. Program berhenti.")
         sys.exit(1)
         
-    # --- Langkah #5: Jalankan Menu Utama ---
-    # Kita kasih jeda sedikit biar keliatan lebih profesional
-    import time
+    # Langkah 5: Jalankan Menu Utama
     time.sleep(1) 
     start_menu(gemini_model)
 
