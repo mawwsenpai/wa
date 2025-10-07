@@ -1,5 +1,5 @@
 # --- installer.py ---
-# VERSI 4.0 - UI Bersih & Cerdas
+# VERSI 4.1 - Edisi UI Cerdas & Rawat Diri
 
 import sys
 import subprocess
@@ -12,6 +12,21 @@ REQUIRED_PACKAGES = [
     "setuptools" 
 ]
 
+def upgrade_installer_tools():
+    """Meng-upgrade pip dan setuptools ke versi terbaru."""
+    print("🛠️  Memeriksa dan merawat alat instalasi (pip & setuptools)...")
+    try:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "pip", "setuptools"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        print("   -> Alat instalasi sudah dalam versi terbaru.")
+        return True
+    except subprocess.CalledProcessError:
+        print("   -> Peringatan: Gagal meng-upgrade alat instalasi. Melanjutkan...")
+        # Kita tidak menghentikan program di sini, karena mungkin masih bisa jalan
+        return False
+
 def check_package(package_name):
     """Mengecek satu package, mengembalikan True jika ada, False jika tidak ada."""
     try:
@@ -23,11 +38,9 @@ def check_package(package_name):
 def install_package(package_name):
     """Menginstal satu package menggunakan pip dengan output yang bersih."""
     try:
-        # Menjalankan perintah pip, menyembunyikan output standar yang berisik
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "--upgrade", package_name],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         return True
     except subprocess.CalledProcessError:
@@ -39,11 +52,14 @@ def run_smart_installer():
     print("      🚀 Asisten AI - Pengecekan Sistem      ")
     print("==============================================")
     
+    # Jalankan fungsi perawatan diri dulu
+    upgrade_installer_tools()
+    
     to_install = []
     already_installed = []
 
     # --- TAHAP ANALISIS ---
-    print("🔍 Menganalisis dependensi yang dibutuhkan...")
+    print("\n🔍 Menganalisis dependensi yang dibutuhkan...")
     for package in REQUIRED_PACKAGES:
         if check_package(package):
             already_installed.append(package)
@@ -68,7 +84,7 @@ def run_smart_installer():
     all_success = True
     for package in to_install:
         sys.stdout.write(f"  -> Menginstal {package}...")
-        sys.stdout.flush() # Memaksa teks untuk tampil sekarang
+        sys.stdout.flush()
         
         if install_package(package):
             sys.stdout.write(" -> BERHASIL!\n")
@@ -81,7 +97,7 @@ def run_smart_installer():
         print("✨ Instalasi selesai. Sistem siap!")
         return True
     else:
-        print("❌ Beberapa instalasi gagal. Coba cek koneksi internet atau jalankan manual.")
+        print("❌ Beberapa instalasi gagal. Coba cek koneksi internet.")
         return False
 
 if __name__ == "__main__":
