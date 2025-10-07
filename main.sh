@@ -27,7 +27,6 @@ main_menu() {
 whatsapp_menu() {
     header
     print_cyan "   [ WHATSAPP TOOLS ]"
-    # Placeholder untuk pesan baru
     print_yellow "   1. Pesan Masuk: [ Fitur dalam pengembangan ]"
     echo "   2. Kirim Pesan Baru"
     echo "   3. Opsi WhatsApp"
@@ -52,12 +51,23 @@ while true; do
                         read -p "   Tekan [Enter] untuk kembali..."
                         ;;
                     2)
-                        # Panggil script python untuk mengirim pesan
-                        # Kita akan buat ini di langkah selanjutnya
+                        # --- INI BAGIAN BARU & PENTING ---
                         echo ""
-                        print_yellow "   Memanggil modul pengirim pesan..."
-                        # python option/whatsapp_handler.py --action send
-                        sleep 2
+                        print_cyan "   --- Kirim Pesan Baru ---"
+                        read -p "   [?] Nomor Tujuan (+628...): " nomor
+                        read -p "   [?] Tulis Pesan: " pesan
+                        read -p "   [?] Minta bantuan Gemini? (y/n): " gemini_choice
+
+                        bantuan_gemini="false"
+                        if [[ "$gemini_choice" == "y" || "$gemini_choice" == "Y" ]]; then
+                            bantuan_gemini="true"
+                        fi
+
+                        # Memanggil aktor Python dengan argumen
+                        python option/kirim.py "$nomor" "$pesan" "$bantuan_gemini"
+                        
+                        echo ""
+                        read -p "   Tekan [Enter] untuk kembali ke menu WhatsApp..."
                         ;;
                     3)
                         echo ""
