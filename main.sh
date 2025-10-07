@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # =======================================================
-# main.sh (Maww Script V4) - UI RINGKAS & Elegan
+# main.sh (Maww Script V4) - FINAL STABIL VERSION
+# Fix API Key Loading, UI Ringkas, Fix tput
 # =======================================================
 
-# --- KONFIGURASI DAN FILE ---
+# --- KONFIGURASI DAN WARNA ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -17,7 +18,8 @@ SCRIPT_FILE="gemini-asisten.js"
 PHONE_FILE=".phone_number"
 API_FILE=".gemini_config"
 AUTH_DIR="auth_info_baileys"
-VERSION="V4"
+LOG_FILE="install_log_$(date +%Y%m%d_%H%M%S).txt"
+VERSION="V4.1"
 
 # --- FUNGSI ANALISIS STATUS LENGKAP ---
 
@@ -35,14 +37,13 @@ check_gemini_status() { [ -f "$API_FILE" ] && echo "✓" || echo "✗"; }
 check_logic_file() { [ -f "$SCRIPT_FILE" ] && echo "✓" || echo "✗"; }
 check_session_status() { [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ] && echo "✓" || echo "✗"; }
 
-# --- FUNGSI BARU: TAMPILAN RINGKAS ---
+# --- FUNGSI TAMPILAN UI RINGKAS ---
 display_header() {
     tput clear
     echo -e "${PURPLE}========================================${NC}"
     echo -e "${CYAN}       🤖 MAWW SCRIPT $VERSION - RINGKAS 🤖     ${NC}"
     echo -e "${PURPLE}========================================${NC}"
     
-    # KUMPULKAN SEMUA STATUS DALAM SATU BARIS
     NODE_STATUS=$(check_nodejs_status)
     GEMINI_STATUS=$(check_gemini_status)
     LOGIC_STATUS=$(check_logic_file)
@@ -54,37 +55,85 @@ display_header() {
     echo -e "----------------------------------------"
 }
 
-# --- FUNGSI UTILITY & LOGIC (Sama seperti V3) ---
-
 pause() {
     echo -e "----------------------------------------"
     read -p "Tekan [Enter] untuk kembali ke menu..."
 }
 
-# Fungsi Instalasi Penuh (Install-Path) - Tidak diubah, fokus pada output log
+# --- FUNGSI SETUP ---
+
+# 1. Install-Path (Fix Log & Fix Modul)
 install_path() {
-    # ... (Kode fungsi install_path yang rapi dan detail) ...
     tput clear
-    echo -e "${BLUE}>> 1. INSTALL-PATH (ANALISIS & INSTALASI) ${NC}"
-    echo -e "----------------------------------------"
-    # Placeholder: Ganti dengan kode fungsi install_path yang lengkap dari balasan sebelumnya
-    # Note: Asumsikan kode install_path yang detail sudah ada di sini
-    echo -e "${YELLOW}Menjalankan instalasi. Output detail dicatat di log file!${NC}"
-    pkg update -y
-    pkg install ncurses nodejs -y > /dev/null 2>&1
-    npm install @google/genai @whiskeysockets/baileys > /dev/null 2>&1
+    echo -e "${BLUE}=================================================${NC}"
+    echo -e "${GREEN}    BOT WA SETUP - STARTING ANALISIS SISTEM    ${NC}"
+    echo -e "${BLUE}=================================================${NC}"
+    echo -e "Waktu mulai: $(date)"
+    echo -e "Log instalasi: ${YELLOW}$LOG_FILE${NC}"
     
-    echo -e "${GREEN}✅ Instalasi Dasar Selesai!${NC}"
-    echo -e "${YELLOW}CATATAN: Pastikan Anda sudah mengisi kode ke ${SCRIPT_FILE} secara manual!${NC}"
+    # Redirect semua output ke file log agar rapi
+    (
+        echo "==================== LOG INSTALASI MAWW SCRIPT V4 ===================="
+        # --- 1. INSTALASI TOOLS WAJIB (Termasuk ncurses) ---
+        echo -e "\n[TOOLS] Memastikan tools wajib terinstal (Node.js & ncurses)..."
+        pkg update -y
+        pkg install ncurses nodejs -y 
+        echo -e "[TOOLS] Node.js dan ncurses selesai."
+
+        # --- 2. SETUP FILE PROYEK ---
+        echo -e "\n[FILE] Menyiapkan file proyek..."
+        
+        # Membuat package.json
+        npm init -y > /dev/null
+        echo -e "[FILE] package.json siap."
+
+        # Membuat file gemini-asisten.js (otomatis isi kode placeholder)
+        if [ ! -f "$SCRIPT_FILE" ]; then
+            touch "$SCRIPT_FILE"
+            echo -e "[FILE] $SCRIPT_FILE (Logika Bot) berhasil dibuat."
+        else
+            echo -e "[FILE] $SCRIPT_FILE sudah ada."
+        fi
+        chmod +x main.sh
+
+        # --- 3. INSTALASI LIBRARY (Fix Module Not Found) ---
+        echo -e "\n[NPM] MENGINSTAL LIBRARY WAJIB (Baileys & Google GenAI)..."
+        # Hapus cache lama dan install ulang total (Fix MODULE_NOT_FOUND)
+        rm -rf node_modules package-lock.json
+        npm install @google/genai @whiskeysockets/baileys
+        if [ $? -ne 0 ]; then
+            echo -e "[NPM] GAGAL: Instalasi library gagal. Cek koneksi internet!"
+            exit 1
+        fi
+        echo -e "[NPM] Semua library berhasil terinstal."
+
+        echo "==================== LOG SELESAI ===================="
+    ) > "$LOG_FILE" 2>&1 # Tutup redirect log
+
+    # Tampilkan hasil setelah log selesai
+    echo -e "${GREEN}   ✅ Instalasi Selesai! Log detail di $LOG_FILE.${NC}"
+    echo -e "${YELLOW}   LANGKAH WAJIB: Isi kode ke ${SCRIPT_FILE} secara manual!${NC}"
     
     pause
 }
 
-# Fungsi Konfigurasi API (Sama seperti V3)
+# 2. Konfigurasi WA
+setup_whatsapp_auth() {
+    display_header
+    echo -e "${BLUE}>> 2. KONFIGURASI NOMOR WA (Kode 8 Digit) ${NC}"
+    echo -e "----------------------------------------"
+    read -p "Masukan Nomer WA Kamu (cth: 6281234567890): " phone_number
+    
+    echo "$phone_number" > "$PHONE_FILE"
+    echo -e "${GREEN}✅ Nomor HP tersimpan di $PHONE_FILE!${NC}"
+    
+    pause
+}
+
+# 3. Konfigurasi Gemini API
 setup_gemini_api() {
     display_header
     echo -e "${BLUE}>> 3. KONFIGURASI GEMINI API ${NC}"
-    # ... (Kode Konfigurasi API) ...
     echo -e "----------------------------------------"
     echo -e "Pilih Model yang kamu mau, Cuy:"
     echo "1. gemini-pro (Standar, Cepat)"
@@ -104,32 +153,20 @@ setup_gemini_api() {
     
     read -p "Masukan Apikey Gemini (Wajib!): " api_key
 
+    # Simpan konfigurasi
     echo "GEMINI_API_KEY=\"$api_key\"" > "$API_FILE"
     echo "GEMINI_MODEL=\"$selected_model\"" >> "$API_FILE"
     echo -e "${GREEN}✅ Konfigurasi Gemini tersimpan di $API_FILE!${NC}"
     pause
 }
 
-# Fungsi Konfigurasi WA (Nomor HP) (Sama seperti V3)
-setup_whatsapp_auth() {
-    display_header
-    echo -e "${BLUE}>> 2. KONFIGURASI NOMOR WA (Kode 8 Digit) ${NC}"
-    echo -e "----------------------------------------"
-    read -p "Masukan Nomer WA Kamu (cth: 6281234567890): " phone_number
-    
-    echo "$phone_number" > "$PHONE_FILE"
-    echo -e "${GREEN}✅ Nomor HP tersimpan di $PHONE_FILE!${NC}"
-    
-    pause
-}
-
-# Fungsi Utama Menjalankan Bot (Diperbaiki agar tidak mengunci)
+# 4. Fungsi Utama Menjalankan Bot (Run)
 run_bot() {
     display_header
     
-    # Cek kelengkapan FILE WAJIB (Nodejs, Logic, Gemini Config)
+    # Cek kelengkapan FILE WAJIB sebelum Run
     if [ "$(check_nodejs_status)" != "✓" ] || [ "$(check_logic_file)" != "✓" ] || [ "$(check_gemini_status)" != "✓" ]; then
-        echo -e "${RED}❌ Konfigurasi FILE DASAR Belum Lengkap! Pastikan Menu 1 dan 3 sudah selesai.${NC}"
+        echo -e "${RED}❌ Konfigurasi File Dasar Belum Lengkap! Pastikan Menu 1 dan 3 sudah selesai.${NC}"
         pause
         return
     fi
@@ -142,39 +179,39 @@ run_bot() {
 
     echo -e "${BLUE}>> 🚀 BOT SIAP JALAN! ${NC}"
     
-    # Kalo Session PENDING (✗), berarti bot akan TAMPILKAN KODE 8 DIGIT.
+    # Kalo Session PENDING (✗), ini adalah proses Otentikasi
     if [ "$(check_session_status)" != "✓" ]; then
-        echo -e "${YELLOW}!!! PERHATIAN: Session WA Pending. Bot akan menampilkan KODE 8 DIGIT! !!!${NC}"
-        echo -e "${YELLOW}Siapkan HP kamu, ini adalah proses Otentikasi!${NC}"
+        echo -e "${YELLOW}!!! PERHATIAN: Session WA Pending. Bot akan TAMPILKAN KODE 8 DIGIT! !!!${NC}"
+        echo -e "${YELLOW}SEGERA SIAPKAN HP KAMU UNTUK OTENTIKASI!${NC}"
     fi
     echo -e "----------------------------------------"
     
-    # Muat konfigurasi dari file
-    source "$API_FILE"
+    # FIX: Memuat konfigurasi dengan stabil sebelum menjalankan Node.js
+    export GEMINI_API_KEY=$(grep 'GEMINI_API_KEY=' "$API_FILE" | cut -d'"' -f2)
+    export GEMINI_MODEL=$(grep 'GEMINI_MODEL=' "$API_FILE" | cut -d'"' -f2)
     export PHONE_NUMBER=$(cat "$PHONE_FILE")
     
     echo -e "Nomor HP: ${PHONE_NUMBER}"
     echo -e "Model AI: ${GEMINI_MODEL}"
     echo -e "========================================"
 
-    # Jalankan Bot WA (Di sini proses Kode 8 Digit berlangsung)
+    # Jalankan Bot WA (Proses Kode 8 Digit berlangsung di sini)
     node "$SCRIPT_FILE"
     
     echo -e "========================================"
-    echo -e "${YELLOW}BOT BERHENTI. Cek auth_info_baileys atau error di atas.${NC}"
+    echo -e "${YELLOW}BOT BERHENTI. Cek session atau error di atas.${NC}"
     pause
 }
 
 
 # --- LOOP MENU UTAMA ---
-pkg install ncurses -y > /dev/null 2>&1 # Instal ncurses di awal
+pkg install ncurses -y > /dev/null 2>&1 # Memastikan ncurses terinstal untuk tput fix
 while true; do
     display_header
     
     NODE_OK=$(check_nodejs_status)
     LOGIC_OK=$(check_logic_file)
     GEMINI_OK=$(check_gemini_status)
-    SESSION_OK=$(check_session_status)
     
     echo -e "${BLUE}>> PILIH MENU ${NC}"
     echo -e "----------------------------------------"
