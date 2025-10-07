@@ -1,105 +1,52 @@
 # --- installer.py ---
-# VERSI 4.1 - Edisi UI Cerdas & Rawat Diri
+# VERSI 5.0 - Edisi PREMAN (Anti Ngeyel, Langsung Hajar!)
 
 import sys
 import subprocess
-from importlib import metadata
 
-# --- DAFTAR BELANJA / DEPENDENSI YANG DIBUTUHKAN ---
+# --- DAFTAR WAJIB INSTALL ---
+# Langsung hajar semua, pip cukup pintar untuk skip/upgrade jika sudah ada
 REQUIRED_PACKAGES = [
+    "pip",
+    "setuptools",
     "google-generativeai",
-    "pywhatkit",
-    "setuptools" 
+    "pywhatkit"
 ]
 
-def upgrade_installer_tools():
-    """Meng-upgrade pip dan setuptools ke versi terbaru."""
-    print("🛠️  Memeriksa dan merawat alat instalasi (pip & setuptools)...")
-    try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--upgrade", "pip", "setuptools"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        print("   -> Alat instalasi sudah dalam versi terbaru.")
-        return True
-    except subprocess.CalledProcessError:
-        print("   -> Peringatan: Gagal meng-upgrade alat instalasi. Melanjutkan...")
-        # Kita tidak menghentikan program di sini, karena mungkin masih bisa jalan
-        return False
-
-def check_package(package_name):
-    """Mengecek satu package, mengembalikan True jika ada, False jika tidak ada."""
-    try:
-        metadata.version(package_name)
-        return True
-    except metadata.PackageNotFoundError:
-        return False
-
-def install_package(package_name):
-    """Menginstal satu package menggunakan pip dengan output yang bersih."""
-    try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "--upgrade", package_name],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        return True
-    except subprocess.CalledProcessError:
-        return False
-
-def run_smart_installer():
-    """Fungsi utama dengan UI yang bersih dan logika yang cerdas."""
+def run_brute_force_installer():
+    """
+    Fungsi ini tidak banyak tanya, langsung instal semua yang dibutuhkan.
+    Cara paling tangguh untuk melawan error ModuleNotFoundError.
+    """
     print("==============================================")
-    print("      🚀 Asisten AI - Pengecekan Sistem      ")
+    print("      🚀 Menjalankan Installer Mode ultra     ")
+    print("         (Anti Ngeyel & Langsung Hajar)       ")
     print("==============================================")
     
-    # Jalankan fungsi perawatan diri dulu
-    upgrade_installer_tools()
-    
-    to_install = []
-    already_installed = []
-
-    # --- TAHAP ANALISIS ---
-    print("\n🔍 Menganalisis dependensi yang dibutuhkan...")
-    for package in REQUIRED_PACKAGES:
-        if check_package(package):
-            already_installed.append(package)
-        else:
-            to_install.append(package)
-    
-    # --- TAHAP LAPORAN ---
-    print("\n--- Laporan Status ---")
-    for package in already_installed:
-        print(f"  [✅] {package:25} -> OK!")
-    
-    if not to_install:
-        print("\n✨ Semua dependensi sudah lengkap. Sistem siap!")
+    try:
+        python_executable = sys.executable
+        
+        # Loop dan hajar instalasi semua package
+        for package in REQUIRED_PACKAGES:
+            print(f"💪 Memastikan '{package}' dalam kondisi prima...")
+            # Perintahnya: python -m pip install --upgrade <package_name>
+            # Outputnya sengaja ditampilkan biar kita lihat prosesnya
+            subprocess.check_call([
+                python_executable, "-m", "pip", "install", "--upgrade", package
+            ])
+        
         print("----------------------------------------------")
+        print("✅ Semua dependensi berhasil dihajar! Sistem siap.")
         return True
         
-    for package in to_install:
-        print(f"  [📦] {package:25} -> Perlu diinstal")
-
-    # --- TAHAP EKSEKUSI ---
-    print("\n--- Memulai Proses Instalasi ---")
-    all_success = True
-    for package in to_install:
-        sys.stdout.write(f"  -> Menginstal {package}...")
-        sys.stdout.flush()
-        
-        if install_package(package):
-            sys.stdout.write(" -> BERHASIL!\n")
-        else:
-            sys.stdout.write(" -> GAGAL!\n")
-            all_success = False
-
-    print("----------------------------------------------")
-    if all_success:
-        print("✨ Instalasi selesai. Sistem siap!")
-        return True
-    else:
-        print("❌ Beberapa instalasi gagal. Coba cek koneksi internet.")
+    except subprocess.CalledProcessError as e:
+        print(f"\n❌ GAGAL saat menghajar package. Error: {e}")
+        print("   Pastikan koneksi internet lancar dan coba lagi.")
+        return False
+    except Exception as e:
+        print(f"\n❌ Terjadi error tak terduga: {e}")
         return False
 
 if __name__ == "__main__":
-    if not run_smart_installer():
-        sys.exit(1)
+    if not run_brute_force_installer():
+        sys.exit(1) # Keluar dengan status error jika instalasi gagal
