@@ -1,0 +1,16 @@
+# Folder konfigurasi pribadi yang berisi API Key
+# Ini baris paling penting untuk keamanan kita!
+MawwScript/
+
+# Folder cache Python (tidak perlu di-upload)
+__pycache__/
+
+# File Python yang terkompilasi
+*.pyc
+
+# Folder virtual environment (jika nanti pakai)
+*env/
+*venv/
+
+# File sistem operasi lain yang tidak perlu
+.DS_Store
