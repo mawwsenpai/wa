@@ -1,32 +1,36 @@
 # --- main.py ---
-# VERSI 5.0 - Arsitektur Modular Profesional
+# VERSI 5.1 - Arsitektur Final & Anti Gagal
 
 import sys
 import subprocess
 import os
 
-# --- Langkah #1: Jalankan Installer & Pengecekan ---
-# Kita tambahkan path ke installer.py
-installer_path = os.path.join('option', 'installer.py')
+# --- Langkah #1: Jalankan Installer (Sekarang di lokasi yang benar) ---
+installer_path = "installer.py"
 try:
-    if os.path.exists(installer_path):
-        print("--- Menjalankan Pengecekan Dependensi ---")
-        subprocess.check_call([sys.executable, installer_path])
-    else:
-        # Jika installer.py juga dipindah, kita bisa cari di sana.
-        # Untuk sekarang, kita asumsikan installer.py tetap di folder option.
-        print(f"Peringatan: {installer_path} tidak ditemukan.")
-except (subprocess.CalledProcessError, FileNotFoundError):
-    print("\n❌ Gagal menjalankan installer.")
+    if not os.path.exists(installer_path):
+        print(f"❌ FATAL: File '{installer_path}' tidak ditemukan!")
+        print("   Pastikan file installer sejajar dengan main.py.")
+        sys.exit() # Berhenti total jika installer tidak ada
+        
+    print("--- Menjalankan Pengecekan Dependensi ---")
+    # Jalankan installer dan tunggu sampai selesai
+    subprocess.check_call([sys.executable, installer_path])
+    
+except subprocess.CalledProcessError:
+    print("\n❌ Gagal saat proses instalasi dependensi. Coba jalankan ulang.")
     sys.exit()
 
-# --- Langkah #2: Impor Modul-modul dari Paket 'option' ---
+# --- Langkah #2: Impor Modul-modul Kita ---
+# Blok try-except ini sekarang jadi sangat penting
 try:
     from option.config_manager import muat_konfigurasi
     from option.gemini_assistant import initialize_gemini
     from option.ui_handler import start_menu
 except ImportError as e:
-    print(f"❌ Gagal mengimpor modul dari folder 'option'. Pastikan file __init__.py ada. Error: {e}")
+    # Error ini HANYA akan muncul jika instalasi gagal atau file .py hilang
+    print(f"❌ Gagal mengimpor modul. Kemungkinan instalasi dependensi gagal. Error: {e}")
+    print("   Pastikan semua file .py ada di dalam folder 'option' dan __init__.py ada.")
     sys.exit()
 
 def main():
