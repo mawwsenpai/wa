@@ -1,25 +1,23 @@
 #!/bin/bash
 
 # =======================================================
-# main.sh (Maww Script V4) - FINAL STABIL VERSION
-# Fix API Key Loading, UI Ringkas, Fix tput
+# main.sh (Maww Script V4.2) - FINAL STABIL VERSION
 # =======================================================
 
 # --- KONFIGURASI DAN WARNA ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 SCRIPT_FILE="gemini-asisten.js"
 PHONE_FILE=".phone_number"
 API_FILE=".gemini_config"
 AUTH_DIR="auth_info_baileys"
 LOG_FILE="install_log_$(date +%Y%m%d_%H%M%S).txt"
-VERSION="V4.1"
+VERSION="V4.2"
 
 # --- FUNGSI ANALISIS STATUS LENGKAP ---
 
@@ -39,7 +37,12 @@ check_session_status() { [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ] && 
 
 # --- FUNGSI TAMPILAN UI RINGKAS ---
 display_header() {
+    # FIX: Check dan install ncurses di sini juga (backup)
+    if ! command -v tput &> /dev/null; then
+        pkg install ncurses -y > /dev/null 2>&1
+    fi
     tput clear
+    
     echo -e "${PURPLE}========================================${NC}"
     echo -e "${CYAN}       🤖 MAWW SCRIPT $VERSION - RINGKAS 🤖     ${NC}"
     echo -e "${PURPLE}========================================${NC}"
@@ -62,57 +65,41 @@ pause() {
 
 # --- FUNGSI SETUP ---
 
-# 1. Install-Path (Fix Log & Fix Modul)
+# 1. Install-Path (Fix Log & Modul)
 install_path() {
     tput clear
-    echo -e "${BLUE}=================================================${NC}"
-    echo -e "${GREEN}    BOT WA SETUP - STARTING ANALISIS SISTEM    ${NC}"
-    echo -e "${BLUE}=================================================${NC}"
+    echo -e "================================================="
+    echo -e "    BOT WA SETUP - STARTING ANALISIS SISTEM    "
+    echo -e "================================================="
     echo -e "Waktu mulai: $(date)"
     echo -e "Log instalasi: ${YELLOW}$LOG_FILE${NC}"
     
-    # Redirect semua output ke file log agar rapi
     (
         echo "==================== LOG INSTALASI MAWW SCRIPT V4 ===================="
-        # --- 1. INSTALASI TOOLS WAJIB (Termasuk ncurses) ---
+        # --- 1. INSTALASI TOOLS WAJIB ---
         echo -e "\n[TOOLS] Memastikan tools wajib terinstal (Node.js & ncurses)..."
         pkg update -y
         pkg install ncurses nodejs -y 
-        echo -e "[TOOLS] Node.js dan ncurses selesai."
-
+        
         # --- 2. SETUP FILE PROYEK ---
         echo -e "\n[FILE] Menyiapkan file proyek..."
-        
-        # Membuat package.json
         npm init -y > /dev/null
-        echo -e "[FILE] package.json siap."
-
-        # Membuat file gemini-asisten.js (otomatis isi kode placeholder)
-        if [ ! -f "$SCRIPT_FILE" ]; then
-            touch "$SCRIPT_FILE"
-            echo -e "[FILE] $SCRIPT_FILE (Logika Bot) berhasil dibuat."
-        else
-            echo -e "[FILE] $SCRIPT_FILE sudah ada."
-        fi
+        if [ ! -f "$SCRIPT_FILE" ]; then touch "$SCRIPT_FILE"; fi
         chmod +x main.sh
-
+        
         # --- 3. INSTALASI LIBRARY (Fix Module Not Found) ---
         echo -e "\n[NPM] MENGINSTAL LIBRARY WAJIB (Baileys & Google GenAI)..."
-        # Hapus cache lama dan install ulang total (Fix MODULE_NOT_FOUND)
-        rm -rf node_modules package-lock.json
+        rm -rf node_modules package-lock.json # FIX: Bersihkan cache
         npm install @google/genai @whiskeysockets/baileys
         if [ $? -ne 0 ]; then
-            echo -e "[NPM] GAGAL: Instalasi library gagal. Cek koneksi internet!"
+            echo -e "[NPM] GAGAL: Instalasi library gagal."
             exit 1
         fi
-        echo -e "[NPM] Semua library berhasil terinstal."
-
         echo "==================== LOG SELESAI ===================="
-    ) > "$LOG_FILE" 2>&1 # Tutup redirect log
+    ) > "$LOG_FILE" 2>&1
 
-    # Tampilkan hasil setelah log selesai
     echo -e "${GREEN}   ✅ Instalasi Selesai! Log detail di $LOG_FILE.${NC}"
-    echo -e "${YELLOW}   LANGKAH WAJIB: Isi kode ke ${SCRIPT_FILE} secara manual!${NC}"
+    echo -e "${YELLOW}   LANGKAH WAJIB: Isi kode ${GREEN}$SCRIPT_FILE${NC} dengan kode dari Gemini!${NC}"
     
     pause
 }
@@ -120,9 +107,9 @@ install_path() {
 # 2. Konfigurasi WA
 setup_whatsapp_auth() {
     display_header
-    echo -e "${BLUE}>> 2. KONFIGURASI NOMOR WA (Kode 8 Digit) ${NC}"
+    echo -e "${PURPLE}>> 2. KONFIGURASI NOMOR WA ${NC}"
     echo -e "----------------------------------------"
-    read -p "Masukan Nomer WA Kamu (cth: 6281234567890): " phone_number
+    read -p "Masukan Nomer WA Kamu (cth: 62812...): " phone_number
     
     echo "$phone_number" > "$PHONE_FILE"
     echo -e "${GREEN}✅ Nomor HP tersimpan di $PHONE_FILE!${NC}"
@@ -133,27 +120,23 @@ setup_whatsapp_auth() {
 # 3. Konfigurasi Gemini API
 setup_gemini_api() {
     display_header
-    echo -e "${BLUE}>> 3. KONFIGURASI GEMINI API ${NC}"
+    echo -e "${PURPLE}>> 3. KONFIGURASI GEMINI API ${NC}"
     echo -e "----------------------------------------"
     echo -e "Pilih Model yang kamu mau, Cuy:"
-    echo "1. gemini-pro (Standar, Cepat)"
-    echo "2. gemini-1.5-flash (Versi Ringan, Efisien)"
-    echo "3. gemini-1.5-pro (Versi Lanjut, Terbaik)"
-    echo "4. Custom [Masukkan nama model sendiri]"
-    read -p "Pilihan Model [1-4]: " model_choice
+    echo "1. gemini-pro"
+    echo "2. gemini-1.5-flash"
+    read -p "Pilihan Model [1/2]: " model_choice
     
     selected_model=""
     case $model_choice in
         1) selected_model="gemini-pro" ;;
         2) selected_model="gemini-1.5-flash" ;;
-        3) selected_model="gemini-1.5-pro" ;;
-        4) read -p "Masukkan Nama Model Custom: " selected_model ;;
         *) echo -e "${RED}Pilihan tidak valid!${NC}"; pause; return ;;
     esac
     
     read -p "Masukan Apikey Gemini (Wajib!): " api_key
 
-    # Simpan konfigurasi
+    # Simpan konfigurasi (FIX: Pastikan format aman)
     echo "GEMINI_API_KEY=\"$api_key\"" > "$API_FILE"
     echo "GEMINI_MODEL=\"$selected_model\"" >> "$API_FILE"
     echo -e "${GREEN}✅ Konfigurasi Gemini tersimpan di $API_FILE!${NC}"
@@ -164,22 +147,18 @@ setup_gemini_api() {
 run_bot() {
     display_header
     
-    # Cek kelengkapan FILE WAJIB sebelum Run
+    # Cek kelengkapan FILE WAJIB
     if [ "$(check_nodejs_status)" != "✓" ] || [ "$(check_logic_file)" != "✓" ] || [ "$(check_gemini_status)" != "✓" ]; then
         echo -e "${RED}❌ Konfigurasi File Dasar Belum Lengkap! Pastikan Menu 1 dan 3 sudah selesai.${NC}"
-        pause
-        return
+        pause; return
     fi
-    # Cek Nomor HP
     if [ ! -f "$PHONE_FILE" ]; then
         echo -e "${RED}❌ Nomor WA belum dikonfigurasi! Harap jalankan Menu 2 dulu.${NC}"
-        pause
-        return
+        pause; return
     fi
 
-    echo -e "${BLUE}>> 🚀 BOT SIAP JALAN! ${NC}"
+    echo -e "${PURPLE}>> 🚀 BOT SIAP JALAN! ${NC}"
     
-    # Kalo Session PENDING (✗), ini adalah proses Otentikasi
     if [ "$(check_session_status)" != "✓" ]; then
         echo -e "${YELLOW}!!! PERHATIAN: Session WA Pending. Bot akan TAMPILKAN KODE 8 DIGIT! !!!${NC}"
         echo -e "${YELLOW}SEGERA SIAPKAN HP KAMU UNTUK OTENTIKASI!${NC}"
@@ -205,7 +184,7 @@ run_bot() {
 
 
 # --- LOOP MENU UTAMA ---
-pkg install ncurses -y > /dev/null 2>&1 # Memastikan ncurses terinstal untuk tput fix
+pkg install ncurses -y > /dev/null 2>&1 # FIX: Install ncurses di awal (backup)
 while true; do
     display_header
     
@@ -213,17 +192,13 @@ while true; do
     LOGIC_OK=$(check_logic_file)
     GEMINI_OK=$(check_gemini_status)
     
-    echo -e "${BLUE}>> PILIH MENU ${NC}"
+    echo -e "${PURPLE}>> PILIH MENU ${NC}"
     echo -e "----------------------------------------"
 
-    # Menu 1: Instalasi Awal/Perbaikan
     echo -e "1. ${YELLOW}Install-Path (Instalasi & Perbaikan File Wajib)${NC}"
-    
-    # Menu Konfigurasi
     echo "2. Konfigurasi Nomor WA"
     echo "3. Konfigurasi Gemini API"
 
-    # Menu Mulai
     if [ "$NODE_OK" = "✓" ] && [ "$LOGIC_OK" = "✓" ] && [ "$GEMINI_OK" = "✓" ]; then
         echo -e "4. ${GREEN}Mulai Bot (Run)${NC}"
     else
@@ -240,7 +215,7 @@ while true; do
         2) setup_whatsapp_auth ;;
         3) setup_gemini_api ;;
         4) run_bot ;;
-        0) echo -e "${BLUE}Sampai Jumpa, Cuy!${NC}"; exit 0 ;;
+        0) echo -e "${CYAN}Sampai Jumpa, Cuy!${NC}"; exit 0 ;;
         *) echo -e "${RED}Pilihan tidak valid!${NC}"; pause ;;
     esac
 done
