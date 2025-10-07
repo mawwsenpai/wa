@@ -2,20 +2,44 @@
 
 # =======================================================
 # main.sh (Maww Script V2) - Starter dan Setup Menu
+# Versi Rapi dan Fix Tput
 # =======================================================
 
-# Warna buat tampilan
+# --- KONFIGURASI DAN FILE ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-CLEAR_SCREEN=$(tput clear)
+NC='\033[0m'
 SCRIPT_FILE="gemini-asisten.js"
 PHONE_FILE=".phone_number"
 API_FILE=".gemini_config"
+LOG_FILE="install_log_$(date +%Y%m%d_%H%M%S).txt"
 
 # --- FUNGSI UTILITY ---
+
+# Cek & Install Tools Wajib (Fix tput command not found)
+install_required_tools() {
+    pkg update -y
+    if ! command -v tput &> /dev/null; then
+        echo -e "${YELLOW}   ⏳ Menginstal paket 'ncurses' untuk tampilan rapi...${NC}"
+        pkg install ncurses -y > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}   ❌ Gagal instal ncurses. Tampilan mungkin kurang rapi.${NC}"
+        fi
+    fi
+}
+
+# Tampilkan Header dan Status
+display_header() {
+    tput clear # Bersihkan layar pakai tput yang sudah diinstal
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${GREEN}       🤖 MAWW SCRIPT V2 - BOT WA 🤖     ${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "Nodejs : $(check_nodejs_status)"
+    echo -e "Gemini : $(check_gemini_status)"
+    echo -e "----------------------------------------"
+}
 
 # Cek Status Instalasi Node.js
 check_nodejs_status() {
@@ -44,37 +68,94 @@ check_setup_status() {
     fi
 }
 
-# Tampilkan Header dan Status
-display_header() {
-    echo "$CLEAR_SCREEN"
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${GREEN}       🤖 MAWW SCRIPT V2 - BOT WA 🤖     ${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "Nodejs : $(check_nodejs_status)"
-    echo -e "Gemini : $(check_gemini_status)"
+pause() {
     echo -e "----------------------------------------"
+    read -p "Tekan [Enter] untuk kembali ke menu..."
 }
 
 # --- FUNGSI SETUP ---
 
-# Fungsi Instalasi Penuh (mirip install-path.sh)
+# Fungsi Instalasi Penuh (Install-Path) - LEBIH DETAIL DAN ELEGÁN
 install_path() {
-    ./install-path.sh # Panggil script instalasi yang sudah kamu buat
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Instalasi Dasar Selesai!${NC}"
-        # Salin Kode ke file gemini-asisten.js
-        echo -e "${YELLOW}⏳ Mengisi kode ke ${SCRIPT_FILE}...${NC}"
-        # Catatan: Di sini kamu harus manual copy-paste kode JS di atas ke file gemini-asisten.js
-        # Karena di shell script, kita tidak bisa menyimpan kode multi-line JS dengan mudah tanpa tools
-        # Untuk demonstrasi, kita buat file kosong saja. User harus mengisi manual.
-        # Catatan: User harus mengisi kode JS ke file ini secara manual
-        # Agar script ini tetap jalan, kita asumsikan user sudah mengisi kode.
-        echo "// Isi kode gemini-asisten.js dari Gemini di sini" > "$SCRIPT_FILE"
+    tput clear
+    echo -e "${BLUE}=================================================${NC}"
+    echo -e "${GREEN}    BOT WA SETUP - STARTING ANALISIS SISTEM    ${NC}"
+    echo -e "${BLUE}=================================================${NC}"
+    echo -e "Waktu mulai: $(date)"
+    echo -e "Log instalasi: ${YELLOW}$LOG_FILE${NC}"
+    
+    # Redirect semua output ke file log
+    (
+        echo "==================== LOG INSTALASI MAWW SCRIPT V2 ===================="
+        echo "Waktu Mulai: $(date)"
+        echo "PATH: $(pwd)"
+        echo "======================================================================"
         
-        echo -e "${GREEN}✅ $SCRIPT_FILE siap!${NC}"
-    else
-        echo -e "${RED}❌ Instalasi Gagal! Cek log.${NC}"
-    fi
+        # --- 1. INSTALASI PRASYARAT (NODE.JS) ---
+        echo -e "\n${BLUE}>> 1. MEMERIKSA DAN MENGINSTAL NODE.JS...${NC}"
+        if command -v node &> /dev/null
+        then
+            echo -e "   [NODE] Status: Node.js sudah terinstal. (Versi: $(node -v))"
+        else
+            echo -e "   [NODE] Status: Node.js belum terinstal. Memulai instalasi..."
+            pkg install nodejs -y 
+            if [ $? -ne 0 ]; then
+                echo -e "   [NODE] GAGAL: Instalasi Node.js gagal."
+                exit 1
+            fi
+            echo -e "   [NODE] Sukses: Node.js berhasil diinstal."
+        fi
+
+        # --- 2. SETUP FILE PROYEK ---
+        echo -e "\n${BLUE}>> 2. MENYIAPKAN FILE DAN FOLDER PROYEK...${NC}"
+        
+        # Membuat package.json
+        echo -e "   [NPM] Status: Membuat package.json..."
+        npm init -y > /dev/null
+        echo -e "   [NPM] Sukses: package.json berhasil dibuat."
+
+        # Membuat file gemini-asisten.js (otomatis isi kode placeholder)
+        if [ ! -f "$SCRIPT_FILE" ]; then
+            echo -e "   [FILE] Status: Membuat $SCRIPT_FILE (Otak Bot)..."
+            # Buat file kosong, user harus paste kode nanti
+            touch "$SCRIPT_FILE"
+            echo -e "   [FILE] Sukses: $SCRIPT_FILE berhasil dibuat. (Perlu diisi kode!)"
+        else
+            echo -e "   [FILE] Status: $SCRIPT_FILE sudah ada. Tidak ditimpa."
+        fi
+
+        # Membuat main.sh (sudah ada, hanya memastikan izin eksekusi)
+        echo -e "   [FILE] Status: Memastikan main.sh memiliki izin eksekusi..."
+        chmod +x main.sh
+        echo -e "   [FILE] Sukses: Izin eksekusi main.sh disetel."
+
+        # --- 3. MENGUNDUH DAN INSTALASI LIBRARY ---
+        echo -e "\n${BLUE}>> 3. MENGUNDUH DAN MENGINSTAL LIBRARY (BAILEYS & GEMINI)...${NC}"
+        echo -e "   [NPM] Status: Memulai instalasi Baileys dan Google GenAI..."
+        npm install @whiskeysockets/baileys @google/genai
+        if [ $? -ne 0 ]; then
+            echo -e "   [NPM] GAGAL: Instalasi library gagal."
+            exit 1
+        fi
+        echo -e "   [NPM] Sukses: Semua library terinstal di node_modules/."
+
+        echo "==================== LOG SELESAI ===================="
+        echo "Waktu Selesai: $(date)"
+        echo "====================================================="
+    ) > "$LOG_FILE" 2>&1 # Tutup redirect log
+
+    # Tampilkan hasil setelah log selesai
+    echo -e "${GREEN}   ✅ Instalasi Selesai! Cek $LOG_FILE untuk log detail.${NC}"
+    echo -e "${YELLOW}   CATATAN: Log instalasi sudah dibuat dengan detail.${NC}"
+
+    echo -e "\n${BLUE}DAFTAR FILE/FOLDER YANG SIAP DIGUNAKAN:${NC}"
+    echo -e "----------------------------------------"
+    echo -e "1. ${GREEN}gemini-asisten.js${NC}: ${YELLOW}WAJIB diisi kode bot + AI.${NC}"
+    echo -e "2. ${GREEN}main.sh${NC}: Menu utama ini."
+    echo -e "3. ${GREEN}node_modules/${NC}: Library Bot."
+    echo -e "4. ${GREEN}package.json${NC}: Manifest Proyek."
+    echo -e "5. ${GREEN}.gemini_config${NC} & ${GREEN}.phone_number${NC}: Akan dibuat di menu Konfigurasi."
+    echo -e "----------------------------------------"
     pause
 }
 
@@ -122,16 +203,13 @@ setup_whatsapp_auth() {
     pause
 }
 
-# --- FUNGSI UTAMA ---
+# Fungsi Utama Menjalankan Bot
 run_bot() {
     display_header
-    if [ "$(check_gemini_status)" != "$(echo -e "${GREEN}✓ [Aktif]${NC}")" ]; then
-        echo -e "${RED}❌ Gemini API belum dikonfigurasi! Harap setel dulu.${NC}"
-        pause
-        return
-    fi
-    if [ ! -f "$PHONE_FILE" ]; then
-        echo -e "${RED}❌ Nomor HP WA belum disetel! Harap setel dulu.${NC}"
+    
+    # Cek kelengkapan konfigurasi
+    if [ "$(check_gemini_status)" != "$(echo -e "${GREEN}✓ [Aktif]${NC}")" ] || [ ! -f "$PHONE_FILE" ] || [ "$(check_setup_status)" == "SETUP_NEEDED" ]; then
+        echo -e "${RED}❌ Konfigurasi Belum Lengkap! Pastikan Menu 1, 2, dan 3 sudah selesai.${NC}"
         pause
         return
     fi
@@ -151,15 +229,13 @@ run_bot() {
     node "$SCRIPT_FILE"
     
     echo -e "========================================"
-    echo -e "${YELLOW}BOT BERHENTI. Jalankan lagi atau cek error.${NC}"
+    echo -e "${YELLOW}BOT BERHENTI. Cek auth_info_baileys atau error di atas.${NC}"
     pause
 }
 
-pause() {
-    read -p "Tekan [Enter] untuk kembali ke menu..."
-}
 
 # --- LOOP MENU UTAMA ---
+install_required_tools # Install tput dulu
 while true; do
     display_header
     
