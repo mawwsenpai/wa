@@ -1,12 +1,13 @@
-// install.js
+ // install.js
 const { execSync } = require('child_process');
 const fs = require('fs');
 
-const MODULES = ['@whiskeysockets/baileys', '@google/genai', 'dotenv', 'chalk'];
+// MENAMBAHKAN 'qrcode-terminal' untuk rendering QR yang lebih baik
+const MODULES = ['@whiskeysockets/baileys', '@google/genai', 'dotenv', 'chalk@4', 'qrcode-terminal'];
 const ENV_EXAMPLE = `GEMINI_API_KEY=\nGEMINI_MODEL=gemini-1.5-flash\nPHONE_NUMBER=`;
 
-console.log("\n🔥 Memulai Instalasi Dependencies...");
-console.log("-------------------------------------");
+console.log("\n🔥 Memulai Instalasi & Pembaruan Dependencies...");
+console.log("------------------------------------------------");
 
 try {
     if (!fs.existsSync('package.json')) {
@@ -22,8 +23,8 @@ try {
         fs.writeFileSync('.env', ENV_EXAMPLE);
     }
     
-    console.log("-------------------------------------");
-    console.log("✅ Instalasi Selesai! Lanjutkan ke Menu 2.");
+    console.log("------------------------------------------------");
+    console.log("✅ Instalasi Selesai! Semua dependensi sudah siap.");
     
 } catch (error) {
     console.error("\n❌ GAGAL menginstal modules!");
