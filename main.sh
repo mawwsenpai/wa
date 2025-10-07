@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =======================================================
-# main.sh (Maww Script V4.2) - FINAL STABIL VERSION
+# main.sh (Maww Script V4.3) - FINAL FIX ALUR WA
 # =======================================================
 
 # --- KONFIGURASI DAN WARNA ---
@@ -17,7 +17,7 @@ PHONE_FILE=".phone_number"
 API_FILE=".gemini_config"
 AUTH_DIR="auth_info_baileys"
 LOG_FILE="install_log_$(date +%Y%m%d_%H%M%S).txt"
-VERSION="V4.2"
+VERSION="V4.3"
 
 # --- FUNGSI ANALISIS STATUS LENGKAP ---
 
@@ -37,7 +37,6 @@ check_session_status() { [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ] && 
 
 # --- FUNGSI TAMPILAN UI RINGKAS ---
 display_header() {
-    # FIX: Check dan install ncurses di sini juga (backup)
     if ! command -v tput &> /dev/null; then
         pkg install ncurses -y > /dev/null 2>&1
     fi
@@ -63,8 +62,6 @@ pause() {
     read -p "Tekan [Enter] untuk kembali ke menu..."
 }
 
-# --- FUNGSI SETUP ---
-
 # 1. Install-Path (Fix Log & Modul)
 install_path() {
     tput clear
@@ -76,20 +73,17 @@ install_path() {
     
     (
         echo "==================== LOG INSTALASI MAWW SCRIPT V4 ===================="
-        # --- 1. INSTALASI TOOLS WAJIB ---
         echo -e "\n[TOOLS] Memastikan tools wajib terinstal (Node.js & ncurses)..."
         pkg update -y
         pkg install ncurses nodejs -y 
         
-        # --- 2. SETUP FILE PROYEK ---
         echo -e "\n[FILE] Menyiapkan file proyek..."
         npm init -y > /dev/null
         if [ ! -f "$SCRIPT_FILE" ]; then touch "$SCRIPT_FILE"; fi
         chmod +x main.sh
         
-        # --- 3. INSTALASI LIBRARY (Fix Module Not Found) ---
         echo -e "\n[NPM] MENGINSTAL LIBRARY WAJIB (Baileys & Google GenAI)..."
-        rm -rf node_modules package-lock.json # FIX: Bersihkan cache
+        rm -rf node_modules package-lock.json 
         npm install @google/genai @whiskeysockets/baileys
         if [ $? -ne 0 ]; then
             echo -e "[NPM] GAGAL: Instalasi library gagal."
@@ -136,7 +130,6 @@ setup_gemini_api() {
     
     read -p "Masukan Apikey Gemini (Wajib!): " api_key
 
-    # Simpan konfigurasi (FIX: Pastikan format aman)
     echo "GEMINI_API_KEY=\"$api_key\"" > "$API_FILE"
     echo "GEMINI_MODEL=\"$selected_model\"" >> "$API_FILE"
     echo -e "${GREEN}✅ Konfigurasi Gemini tersimpan di $API_FILE!${NC}"
@@ -165,7 +158,6 @@ run_bot() {
     fi
     echo -e "----------------------------------------"
     
-    # FIX: Memuat konfigurasi dengan stabil sebelum menjalankan Node.js
     export GEMINI_API_KEY=$(grep 'GEMINI_API_KEY=' "$API_FILE" | cut -d'"' -f2)
     export GEMINI_MODEL=$(grep 'GEMINI_MODEL=' "$API_FILE" | cut -d'"' -f2)
     export PHONE_NUMBER=$(cat "$PHONE_FILE")
@@ -174,7 +166,6 @@ run_bot() {
     echo -e "Model AI: ${GEMINI_MODEL}"
     echo -e "========================================"
 
-    # Jalankan Bot WA (Proses Kode 8 Digit berlangsung di sini)
     node "$SCRIPT_FILE"
     
     echo -e "========================================"
@@ -184,13 +175,14 @@ run_bot() {
 
 
 # --- LOOP MENU UTAMA ---
-pkg install ncurses -y > /dev/null 2>&1 # FIX: Install ncurses di awal (backup)
+pkg install ncurses -y > /dev/null 2>&1 
 while true; do
     display_header
     
     NODE_OK=$(check_nodejs_status)
     LOGIC_OK=$(check_logic_file)
     GEMINI_OK=$(check_gemini_status)
+    SESSION_OK=$(check_session_status)
     
     echo -e "${PURPLE}>> PILIH MENU ${NC}"
     echo -e "----------------------------------------"
@@ -199,8 +191,13 @@ while true; do
     echo "2. Konfigurasi Nomor WA"
     echo "3. Konfigurasi Gemini API"
 
+    # FIX: Dynamic Menu 4 Label
     if [ "$NODE_OK" = "✓" ] && [ "$LOGIC_OK" = "✓" ] && [ "$GEMINI_OK" = "✓" ]; then
-        echo -e "4. ${GREEN}Mulai Bot (Run)${NC}"
+        if [ "$SESSION_OK" = "✓" ]; then
+            echo -e "4. ${GREEN}Mulai Bot (Online / Session Aktif)${NC}"
+        else
+            echo -e "4. ${YELLOW}Mulai Bot (Otentikasi WA / Kode 8 Digit)${NC}" 
+        fi
     else
         echo "4. Mulai Bot (Konfigurasi File belum lengkap)"
     fi
