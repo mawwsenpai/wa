@@ -1,5 +1,5 @@
 # --- installer.py ---
-# VERSI 5.0 - Edisi PREMAN (Anti Ngeyel, Langsung Hajar!)
+# VERSI 6.0 - Edisi Langsung Eksekusi (Install First, Analyze Later)
 
 import sys
 import subprocess
@@ -12,32 +12,47 @@ REQUIRED_PACKAGES = [
     "pywhatkit"
 ]
 
-def run_brute_force_installer():
+def run_direct_installer():
     """
-    Fungsi ini tidak banyak tanya, langsung instal semua yang dibutuhkan.
+    Fungsi ini langsung mengeksekusi instalasi untuk setiap paket
+    dan memberikan laporan real-time, sesuai permintaan.
     """
     print("==============================================")
-    print("      🚀 Menjalankan Installer Mode Preman     ")
-    print("         (Anti Ngeyel & Langsung Hajar)         ")
+    print("      🚀 Asisten AI - Mode Eksekusi          ")
     print("==============================================")
     
-    try:
-        python_executable = sys.executable
+    all_success = True
+    
+    # Langsung loop dan eksekusi
+    for package in REQUIRED_PACKAGES:
+        # sys.stdout.write & .flush() untuk efek real-time
+        sys.stdout.write(f"⚙️  Memastikan '{package}' dalam kondisi prima...")
+        sys.stdout.flush()
         
-        for package in REQUIRED_PACKAGES:
-            print(f"💪 Memastikan '{package}' dalam kondisi prima...")
-            subprocess.check_call([
-                python_executable, "-m", "pip", "install", "--upgrade", package
-            ])
+        try:
+            # Jalankan perintah pip install dalam mode senyap
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "--upgrade", package],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            # Jika berhasil, cetak status OK
+            sys.stdout.write(" -> ✅ OK!\n")
+            
+        except subprocess.CalledProcessError:
+            # Jika gagal, cetak status GAGAL
+            sys.stdout.write(" -> ❌ GAGAL!\n")
+            all_success = False
         
-        print("----------------------------------------------")
-        print("✅ Semua dependensi berhasil dihajar! Sistem siap.")
+    print("----------------------------------------------")
+    
+    if all_success:
+        print("✨ Semua sistem siap tempur!")
         return True
-        
-    except Exception as e:
-        print(f"\n❌ GAGAL saat memproses package. Error: {e}")
+    else:
+        print("❌ Beberapa instalasi gagal. Coba periksa koneksi internet.")
         return False
 
 if __name__ == "__main__":
-    if not run_brute_force_installer():
-        sys.exit(1)
+    if not run_direct_installer():
+        sys.exit(1) # Keluar dengan status error jika ada yang gagal
