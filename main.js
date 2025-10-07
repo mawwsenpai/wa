@@ -1,59 +1,47 @@
 // main.js
-
+require('dotenv').config();
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
-// Import Logic Balasan dari gemini-config.js
-const { handleMessage } = require('./gemini-config'); 
+const chalk = require('chalk');
+const { getGeminiResponse } = require('./gemini.js');
 
-// Diambil dari main.sh, memastikan API Key sudah ada
-if (!process.env.GEMINI_API_KEY) {
-    console.error("❌ ERROR: API Key belum dimuat. Jalankan Menu 3 (Konfigurasi Gemini)!");
-    process.exit(1);
-}
-
-async function startBot() {
-    console.log(`[STATUS] BOT ONLINE`);
-
+const startBot = async () => {
+    console.log(chalk.cyan.bold("================== BOT STARTING =================="));
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     const { version } = await fetchLatestBaileysVersion();
     
-    // Cek apakah sudah terautentikasi (wajib)
-    if (!state.creds.registered) {
-        console.error("❌ ERROR: Bot belum terautentikasi! Jalankan Menu 4 (Otentikasi WA) dulu.");
-        process.exit(1);
-    }
+    const sock = makeWASocket({ version, auth: state, printQRInTerminal: false });
     
-    const sock = makeWASocket({
-        version,
-        auth: state,
-        browser: ['MawwScriptV5', 'Chrome', '110.0.0.0'],
-    });
-
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Koneksi tertutup. Mencoba hubungkan ulang:', shouldReconnect);
-            if (shouldReconnect) { startBot(); } else {
-                console.log('❌ Di-logout! Hapus auth_info_baileys untuk login lagi.');
-            }
+            console.log(chalk.red(`Koneksi ditutup, mencoba menghubungkan ulang: ${shouldReconnect}`));
+            if (shouldReconnect) startBot();
         } else if (connection === 'open') {
-            console.log('✅ Bot tersambung dan siap beraksi! 😎');
+            console.log(chalk.green.bold("✅ Bot berhasil terhubung!"));
         }
     });
-
+    
     sock.ev.on('creds.update', saveCreds);
-
-    // Event Pesan: Kirim ke gemini-config.js untuk di-handle
-    sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        const m = messages[0];
-        if (!m.message || m.key.fromMe) return; 
-
-        const from = m.key.remoteJid;
-        const text = m.message.conversation || m.message.extendedTextMessage?.text || '';
+    
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        const msg = messages[0];
+        if (!msg.message || msg.key.fromMe || msg.key.remoteJid.endsWith('@g.us')) return;
         
-        // Panggil fungsi balasan AI
-        handleMessage(sock, m, from, text);
+        const from = msg.key.remoteJid;
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+        
+        if (text) {
+            try {
+                await sock.sendPresenceUpdate('composing', from);
+                const response = await getGeminiResponse(text);
+                await sock.sendMessage(from, { text: response });
+                console.log(chalk.green(`[REPLY] Balasan terkirim ke ${from}.`));
+            } catch (error) {
+                console.error(chalk.red(`[ERROR] Gagal mengirim balasan: ${error.message}`));
+            }
+        }
     });
-}
+};
 
-startBot();
+startBot().catch(err => console.error(chalk.bgRed.white("KESALAHAN FATAL:"), err));

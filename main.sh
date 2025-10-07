@@ -1,242 +1,173 @@
 #!/bin/bash
 
 # =======================================================
-# main.sh (Maww Script V4.3) - FINAL FIX ALUR WA
-# FIX: Dipastikan tidak ada unexpected EOF
+# main.sh (Maww Script V5.0) - Refactored by Gemini
+# Perubahan:
+# - UI/Tampilan menu lebih modern dan informatif.
+# - Menggunakan file .env untuk semua konfigurasi.
+# - Opsi otentikasi (QR/Kode) dipilih dari menu.
+# - Penambahan menu reset sesi.
+# - Struktur kode lebih bersih dan modular.
 # =======================================================
 
 # --- KONFIGURASI DAN WARNA ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m'
+BOLD='\033[1m'
 
-WA_CONFIG_FILE="wa-config.js"
-GEMINI_CONFIG_FILE="gemini-config.js"
-INSTALL_CONFIG_FILE="install-config.js"
-MAIN_RUN_FILE="main.js" # Harusnya main.js di skema V5
-
-PHONE_FILE=".phone_number"
-API_FILE=".gemini_config"
+# --- NAMA FILE KONFIGURASI ---
+ENV_FILE=".env"
+INSTALL_SCRIPT="install.js"
+AUTH_SCRIPT="auth.js"
+MAIN_SCRIPT="main.js"
 AUTH_DIR="auth_info_baileys"
-LOG_FILE="install_log_$(date +%Y%m%d_%H%M%S).txt"
-VERSION="V4.3"
+VERSION="V5.0"
 
-# --- FUNGSI ANALISIS STATUS LENGKAP ---
+# --- FUNGSI UTAMA ---
 
-get_status_icon() { local check_result=$1; [ "$check_result" = "✓" ] && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}"; }
-check_nodejs_status() { command -v node &> /dev/null && echo "✓" || echo "✗"; }
-check_gemini_status() { [ -f "$API_FILE" ] && echo "✓" || echo "✗"; }
-check_session_status() { [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ] && echo "✓" || echo "✗"; }
-check_all_files_exist() { 
-    if [ -f "$WA_CONFIG_FILE" ] && [ -f "$GEMINI_CONFIG_FILE" ] && [ -f "$MAIN_RUN_FILE" ]; then 
-        echo "✓" 
-    else 
-        echo "✗"
-    fi
-}
-
-# --- FUNGSI TAMPILAN UI RINGKAS ---
-display_header() {
+clear_screen() {
     if ! command -v tput &> /dev/null; then
-        pkg install ncurses -y > /dev/null 2>&1
+        echo -e "${YELLOW}Paket 'ncurses-utils' tidak ditemukan. Menginstal...${NC}"
+        pkg install ncurses-utils -y > /dev/null 2>&1
     fi
     tput clear
-    
-    echo -e "${PURPLE}========================================${NC}"
-    echo -e "${CYAN}       🤖 MAWW SCRIPT $VERSION - RINGKAS 🤖     ${NC}"
-    echo -e "${PURPLE}========================================${NC}"
-    
-    NODE_STATUS=$(check_nodejs_status)
-    GEMINI_STATUS=$(check_gemini_status)
-    SESSION_STATUS=$(check_session_status)
-    FILES_OK=$(check_all_files_exist) # Untuk skema V5
+}
 
-    STATUS_LINE="⚡️Nodejs $(get_status_icon $NODE_STATUS) | 🔑Gemini $(get_status_icon $GEMINI_STATUS) | 🔗Session $(get_status_icon $SESSION_STATUS)"
-    
-    echo -e " ${PURPLE}STATUS > ${CYAN}$STATUS_LINE${NC}"
-    echo -e "----------------------------------------"
+display_header() {
+    clear_screen
+    echo -e "${PURPLE}╔══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${PURPLE}║${CYAN}${BOLD}         🤖 MAWW SCRIPT $VERSION - REFACTORED BY GEMINI 🤖         ${PURPLE}║${NC}"
+    echo -e "${PURPLE}╚══════════════════════════════════════════════════════════╝${NC}"
+}
+
+display_status() {
+    echo -e "${PURPLE}╟─ STATUS PRASYARAT ───────────────────────────────────────╢${NC}"
+
+    # 1. Cek Node.js
+    if command -v node &> /dev/null; then
+        NODE_VERSION=$(node -v)
+        echo -e "${PURPLE}║${NC} ${GREEN}✓${NC} ${BOLD}Node.js${NC}: Terinstal (versi ${NODE_VERSION})"
+    else
+        echo -e "${PURPLE}║${NC} ${RED}✗${NC} ${BOLD}Node.js${NC}: Belum terinstal"
+    fi
+
+    # 2. Cek File Konfigurasi .env
+    if [ -f "$ENV_FILE" ] && grep -q "GEMINI_API_KEY=.*" "$ENV_FILE"; then
+        echo -e "${PURPLE}║${NC} ${GREEN}✓${NC} ${BOLD}Gemini API${NC}: Kunci API sudah diatur di ${ENV_FILE}"
+    else
+        echo -e "${PURPLE}║${NC} ${RED}✗${NC} ${BOLD}Gemini API${NC}: Kunci API belum diatur di ${ENV_FILE}"
+    fi
+
+    # 3. Cek Sesi WA
+    if [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ]; then
+        echo -e "${PURPLE}║${NC} ${GREEN}✓${NC} ${BOLD}Sesi WA${NC}: Aktif (folder ${AUTH_DIR} ditemukan)"
+    else
+        echo -e "${PURPLE}║${NC} ${RED}✗${NC} ${BOLD}Sesi WA${NC}: Tidak aktif"
+    fi
+
+    echo -e "${PURPLE}╟────────────────────────────────────────────────────────────╢${NC}"
 }
 
 pause() {
-    echo -e "----------------------------------------"
+    echo ""
     read -p "Tekan [Enter] untuk kembali ke menu..."
 }
 
-# 1. Install-Path (Menggantikan install-path.sh)
-install_config() {
-    tput clear
-    echo -e "================================================="
-    echo -e "    BOT WA SETUP - STARTING ANALISIS SISTEM    "
-    echo -e "================================================="
-    echo -e "Waktu mulai: $(date)"
-    
-    # FIX: Kita anggap instalasi modules dilakukan oleh install-config.js (sesuai skema V5)
-    # Di sini hanya proses setup files dasar
-    
-    if [ "$(check_nodejs_status)" = "✗" ]; then
-        echo -e "${YELLOW}⏳ Node.js belum terinstal. Menginstal sekarang...${NC}"
+# --- FUNGSI MENU ---
+
+run_installation() {
+    display_header
+    echo -e "\n${YELLOW}${BOLD}Memulai proses instalasi dan penyiapan...${NC}\n"
+    if ! command -v node &> /dev/null; then
+        echo "Node.js belum terinstal. Menginstal sekarang..."
         pkg install nodejs -y
-        if [ $? -ne 0 ]; then echo -e "${RED}❌ Gagal instal Node.js.${NC}"; pause; return; fi
+        if [ $? -ne 0 ]; then echo -e "${RED}Gagal menginstal Node.js.${NC}"; pause; return; fi
     fi
-
-    echo -e "${YELLOW}⏳ Menyiapkan file dasar...${NC}"
-    npm init -y > /dev/null 2>&1
-    touch "$INSTALL_CONFIG_FILE" "$WA_CONFIG_FILE" "$GEMINI_CONFIG_FILE" "$MAIN_RUN_FILE" 
-    
-    # Jalankan logic instalasi modules
-    if [ -f "$INSTALL_CONFIG_FILE" ]; then
-        echo -e "${YELLOW}⏳ Menjalankan $INSTALL_CONFIG_FILE untuk download modules...${NC}"
-        node "$INSTALL_CONFIG_FILE"
-    else
-        echo -e "${RED}❌ GAGAL: $INSTALL_CONFIG_FILE tidak ditemukan. Salin kode dari Gemini!${NC}"
-    fi
-
-    echo -e "${GREEN}✅ Setup File dan Modules Selesai!${NC}"
-    echo -e "${YELLOW}LANGKAH WAJIB: Isi kode semua file JS dengan kode dari Gemini!${NC}"
-    
+    node "$INSTALL_SCRIPT"
     pause
 }
 
-# 2. Konfigurasi WA
-setup_whatsapp_auth() {
+setup_env_config() {
     display_header
-    echo -e "${PURPLE}>> 2. KONFIGURASI NOMOR WA ${NC}"
-    echo -e "----------------------------------------"
-    read -p "Masukan Nomer WA Kamu (cth: 62812...): " phone_number
-    
-    echo "$phone_number" > "$PHONE_FILE"
-    echo -e "${GREEN}✅ Nomor HP tersimpan di $PHONE_FILE!${NC}"
-    
+    echo -e "\n${CYAN}${BOLD}--- PENGATURAN KONFIGURASI (.env) ---${NC}\n"
+    touch "$ENV_FILE"
+    CURRENT_KEY=$(grep 'GEMINI_API_KEY' "$ENV_FILE" | cut -d'=' -f2)
+    CURRENT_PHONE=$(grep 'PHONE_NUMBER' "$ENV_FILE" | cut -d'=' -f2)
+    read -p "Masukkan Gemini API Key [${CURRENT_KEY}]: " api_key
+    read -p "Masukkan Nomor WA (62...) [${CURRENT_PHONE}]: " phone_number
+    echo "Pilih Model Gemini (1=pro, 2=flash) [2]:"
+    read -p "Pilihan: " model_choice
+    api_key=${api_key:-$CURRENT_KEY}
+    phone_number=${phone_number:-$CURRENT_PHONE}
+    case ${model_choice:-2} in 1) model="gemini-pro" ;; *) model="gemini-1.5-flash" ;; esac
+    echo "GEMINI_API_KEY=$api_key" > "$ENV_FILE"
+    echo "GEMINI_MODEL=$model" >> "$ENV_FILE"
+    echo "PHONE_NUMBER=$phone_number" >> "$ENV_FILE"
+    echo -e "\n${GREEN}✓ Konfigurasi berhasil disimpan di ${BOLD}$ENV_FILE${NC}."
     pause
 }
 
-# 3. Konfigurasi Gemini API
-setup_gemini_api() {
+run_authentication() {
     display_header
-    echo -e "${PURPLE}>> 3. KONFIGURASI GEMINI API ${NC}"
-    echo -e "----------------------------------------"
-    echo -e "Pilih Model yang kamu mau, Cuy:"
-    echo "1. gemini-pro"
-    echo "2. gemini-1.5-flash"
-    read -p "Pilihan Model [1/2]: " model_choice
-    
-    selected_model=""
-    case $model_choice in
-        1) selected_model="gemini-pro" ;;
-        2) selected_model="gemini-1.5-flash" ;;
-        *) echo -e "${RED}Pilihan tidak valid!${NC}"; pause; return ;;
-    esac
-    
-    read -p "Masukan Apikey Gemini (Wajib!): " api_key
-
-    # Simpan konfigurasi (FIX: Pastikan format aman)
-    echo "GEMINI_API_KEY=\"$api_key\"" > "$API_FILE"
-    echo "GEMINI_MODEL=\"$selected_model\"" >> "$API_FILE"
-    echo -e "${GREEN}✅ Konfigurasi Gemini tersimpan di $API_FILE!${NC}"
+    echo -e "\n${CYAN}${BOLD}--- OTENTIKASI WHATSAPP ---${NC}\n"
+    if [ ! -f "$AUTH_SCRIPT" ]; then echo -e "${RED}File ${AUTH_SCRIPT} tidak ditemukan.${NC}"; pause; return; fi
+    echo "Pilih Metode: 1. Scan QR (Stabil) 2. Kode 8 Digit"
+    read -p "Pilihan [1]: " choice
+    case ${choice:-1} in 1) node "$AUTH_SCRIPT" --method=qr ;; 2) node "$AUTH_SCRIPT" --method=code ;; *) echo -e "${RED}Pilihan tidak valid.${NC}" ;; esac
     pause
 }
 
-# 4. Otentikasi WA
-authenticate_wa() {
-    display_header
-
-    if [ "$(check_session_status)" = "✓" ]; then
-        echo -e "${GREEN}✅ Session sudah Aktif! Langsung ke Menu 5 (Run).${NC}"
-        pause; return
-    fi
-    
-    # Cek Prasyarat WA Otentikasi
-    if [ "$(check_nodejs_status)" = "✗" ] || [ ! -f "$PHONE_FILE" ]; then
-        echo -e "${RED}❌ Prasyarat Gagal. Cek Nodejs (Menu 1) dan Nomor WA (Menu 2).${NC}"
-        pause; return
-    fi
-    
-    echo -e "${YELLOW}⏳ Memulai Otentikasi WA (Kode 8 Digit)...${NC}"
-    
-    # Eksport variabel sebelum menjalankan wa-config.js
-    export PHONE_NUMBER=$(cat "$PHONE_FILE")
-    
-    # Jalankan logic autentikasi
-    node "$WA_CONFIG_FILE"
-    
-    pause
-}
-
-# 5. Run Bot (Setelah Semua ✓)
 run_bot() {
     display_header
-    
-    # Cek Kunci (Semua wajib ✓)
-    if [ "$(check_nodejs_status)" != "✓" ] || [ "$(check_session_status)" != "✓" ] || [ "$(check_gemini_status)" != "✓" ]; then
-        echo -e "${RED}❌ KUNCI GAGAL: Semua status di atas harus '✓' sebelum RUN!${NC}"
-        pause; return
+    echo -e "\n${GREEN}${BOLD}--- MENJALANKAN BOT ---${NC}\n"
+    if ! command -v node &> /dev/null || [ ! -f "$ENV_FILE" ] || [ ! -d "$AUTH_DIR" ]; then
+        echo -e "${RED}✗ Prasyarat belum terpenuhi! Pastikan semua status ✓.${NC}"
+        pause
+        return
     fi
-
-    echo -e "${GREEN}>> 🚀 BOT SIAP ONLINE! ${NC}"
-    echo -e "----------------------------------------"
-    
-    # Eksport konfigurasi dari file
-    export GEMINI_API_KEY=$(grep 'GEMINI_API_KEY=' "$API_FILE" | cut -d'"' -f2)
-    export GEMINI_MODEL=$(grep 'GEMINI_MODEL=' "$API_FILE" | cut -d'"' -f2)
-    
-    echo -e "Model AI: ${GEMINI_MODEL}"
-    echo -e "========================================"
-
-    # Jalankan Bot Utama
-    node "$MAIN_RUN_FILE"
-    
-    echo -e "========================================"
-    echo -e "${YELLOW}BOT BERHENTI.${NC}"
+    echo "Bot sedang online... Tekan CTRL+C untuk berhenti."
+    node "$MAIN_SCRIPT"
+    echo -e "\n${YELLOW}Bot telah berhenti.${NC}"
     pause
 }
 
+reset_session() {
+    display_header
+    echo -e "\n${YELLOW}${BOLD}--- RESET SESI WHATSAPP ---${NC}\n"
+    if [ -d "$AUTH_DIR" ]; then
+        read -p "Anda yakin ingin menghapus sesi login? (y/n): " confirm
+        if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+            rm -rf "$AUTH_DIR"
+            echo -e "${GREEN}✓ Sesi berhasil dihapus.${NC}"
+        else
+            echo "Reset dibatalkan."
+        fi
+    else
+        echo "Tidak ada sesi aktif untuk dihapus."
+    fi
+    pause
+}
 
 # --- LOOP MENU UTAMA ---
-pkg install ncurses -y > /dev/null 2>&1 
 while true; do
     display_header
-    
-    NODE_OK=$(check_nodejs_status)
-    GEMINI_OK=$(check_gemini_status)
-    SESSION_OK=$(check_session_status)
-    FILES_OK=$(check_all_files_exist) # Untuk cek keberadaan file JS
-
-    # Kunci untuk Menu RUN (Menu 5)
-    READY_TO_RUN="✗"
-    if [ "$NODE_OK" = "✓" ] && [ "$SESSION_OK" = "✓" ] && [ "$GEMINI_OK" = "✓" ] && [ "$FILES_OK" = "✓" ]; then
-        READY_TO_RUN="✓"
-    fi
-    
-    echo -e "${PURPLE}>> PILIH MENU ${NC}"
-    echo -e "----------------------------------------"
-
-    echo -e "1. ${YELLOW}Install-Config (Instalasi Modules/Files)${NC}"
-    echo "2. Konfigurasi Nomor WA"
-    echo "3. Konfigurasi Gemini API"
-    echo "4. Otentikasi WA (Kode 8 Digit)"
-
-    if [ "$READY_TO_RUN" = "✓" ]; then
-        echo -e "5. ${GREEN}Mulai Bot (RUN / ONLINE)${NC}"
-    else
-        echo "5. Mulai Bot (Konfigurasi belum lengkap)"
-    fi
-    
-    echo "0. Keluar"
-    echo -e "----------------------------------------"
-    
-    read -p "Pilihan Anda: " choice
-
-    case $choice in
-        1) install_config ;;
-        2) setup_whatsapp_auth ;;
-        3) setup_gemini_api ;;
-        4) authenticate_wa ;;
-        5) run_bot ;;
-        0) echo -e "${CYAN}Sampai Jumpa, Cuy!${NC}"; exit 0 ;;
-        *) echo -e "${RED}Pilihan tidak valid!${NC}"; pause ;;
-    esac
+    display_status
+    READY_TO_RUN=false
+    if command -v node &> /dev/null && [ -f "$ENV_FILE" ] && grep -q "GEMINI_API_KEY=.*" "$ENV_FILE" && [ -d "$AUTH_DIR" ]; then READY_TO_RUN=true; fi
+    echo -e "${PURPLE}╟─ MENU UTAMA ─────────────────────────────────────────────╢${NC}"
+    echo -e "${PURPLE}║${NC} 1. ${CYAN}Install / Update Dependencies${NC}"
+    echo -e "${PURPLE}║${NC} 2. ${CYAN}Konfigurasi (API Key, No WA, Model)${NC}"
+    echo -e "${PURPLE}║${NC} 3. ${CYAN}Hubungkan WhatsApp (Otentikasi)${NC}"
+    if [ "$READY_TO_RUN" = true ]; then echo -e "${PURPLE}║${NC} 4. ${GREEN}${BOLD}Jalankan Bot${NC}"; else echo -e "${PURPLE}║${NC} 4. ${RED}Jalankan Bot (Belum Siap)${NC}"; fi
+    echo -e "${PURPLE}║${NC} 5. ${YELLOW}Reset Sesi WhatsApp${NC}"
+    echo -e "${PURPLE}║${NC} 0. ${RED}Keluar${NC}"
+    echo -e "${PURPLE}╚══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    read -p "Masukkan pilihan Anda: " choice
+    case $choice in 1) run_installation;; 2) setup_env_config;; 3) run_authentication;; 4) run_bot;; 5) reset_session;; 0) echo -e "\n${CYAN}Sampai jumpa!${NC}"; exit 0;; *) echo -e "\n${RED}Pilihan tidak valid!${NC}"; pause;; esac
 done
-# <--- PASTIKAN TIDAK ADA APA-APA LAGI DI BAWAH GARIS INI! --->
