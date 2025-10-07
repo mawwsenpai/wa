@@ -1,8 +1,4 @@
 // install-config.js
-/**
- * Dijalankan oleh main.sh (Menu 1). 
- * Tugas: Memastikan modules Baileys dan Gemini terinstal bersih.
- */
 const { execSync } = require('child_process');
 const fs = require('fs');
 

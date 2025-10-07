@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # =======================================================
-# main.sh (Maww Script V5) - FINAL UI & PROPORSIONAL
+# main.sh (Maww Script V4.3) - FINAL FIX ALUR WA
+# FIX: Dipastikan tidak ada unexpected EOF
 # =======================================================
 
 # --- KONFIGURASI DAN WARNA ---
@@ -15,12 +16,13 @@ NC='\033[0m'
 WA_CONFIG_FILE="wa-config.js"
 GEMINI_CONFIG_FILE="gemini-config.js"
 INSTALL_CONFIG_FILE="install-config.js"
-MAIN_RUN_FILE="main.js"
+MAIN_RUN_FILE="main.js" # Harusnya main.js di skema V5
 
 PHONE_FILE=".phone_number"
 API_FILE=".gemini_config"
 AUTH_DIR="auth_info_baileys"
-VERSION="V5"
+LOG_FILE="install_log_$(date +%Y%m%d_%H%M%S).txt"
+VERSION="V4.3"
 
 # --- FUNGSI ANALISIS STATUS LENGKAP ---
 
@@ -36,20 +38,23 @@ check_all_files_exist() {
     fi
 }
 
-
 # --- FUNGSI TAMPILAN UI RINGKAS ---
 display_header() {
+    if ! command -v tput &> /dev/null; then
+        pkg install ncurses -y > /dev/null 2>&1
+    fi
     tput clear
+    
     echo -e "${PURPLE}========================================${NC}"
-    echo -e "${CYAN}       🤖 MAWW SCRIPT $VERSION - FINAL 🤖     ${NC}"
+    echo -e "${CYAN}       🤖 MAWW SCRIPT $VERSION - RINGKAS 🤖     ${NC}"
     echo -e "${PURPLE}========================================${NC}"
     
     NODE_STATUS=$(check_nodejs_status)
     GEMINI_STATUS=$(check_gemini_status)
     SESSION_STATUS=$(check_session_status)
-    FILES_OK=$(check_all_files_exist)
+    FILES_OK=$(check_all_files_exist) # Untuk skema V5
 
-    STATUS_LINE="⚡️Nodejs $(get_status_icon $NODE_STATUS) | 🔑Gemini $(get_status_icon $GEMINI_STATUS) | 🔗Session $(get_status_icon $SESSION_STATUS) | 🧠Files $(get_status_icon $FILES_OK)"
+    STATUS_LINE="⚡️Nodejs $(get_status_icon $NODE_STATUS) | 🔑Gemini $(get_status_icon $GEMINI_STATUS) | 🔗Session $(get_status_icon $SESSION_STATUS)"
     
     echo -e " ${PURPLE}STATUS > ${CYAN}$STATUS_LINE${NC}"
     echo -e "----------------------------------------"
@@ -60,25 +65,37 @@ pause() {
     read -p "Tekan [Enter] untuk kembali ke menu..."
 }
 
-# --- FUNGSI MENU ---
-
-# 1. Install-Config (Download Modules)
+# 1. Install-Path (Menggantikan install-path.sh)
 install_config() {
-    display_header
-    echo -e "${PURPLE}>> 1. INSTALASI & DOWNLOAD FILES ${NC}"
-    echo -e "----------------------------------------"
+    tput clear
+    echo -e "================================================="
+    echo -e "    BOT WA SETUP - STARTING ANALISIS SISTEM    "
+    echo -e "================================================="
+    echo -e "Waktu mulai: $(date)"
+    
+    # FIX: Kita anggap instalasi modules dilakukan oleh install-config.js (sesuai skema V5)
+    # Di sini hanya proses setup files dasar
     
     if [ "$(check_nodejs_status)" = "✗" ]; then
         echo -e "${YELLOW}⏳ Node.js belum terinstal. Menginstal sekarang...${NC}"
         pkg install nodejs -y
         if [ $? -ne 0 ]; then echo -e "${RED}❌ Gagal instal Node.js.${NC}"; pause; return; fi
     fi
+
+    echo -e "${YELLOW}⏳ Menyiapkan file dasar...${NC}"
+    npm init -y > /dev/null 2>&1
+    touch "$INSTALL_CONFIG_FILE" "$WA_CONFIG_FILE" "$GEMINI_CONFIG_FILE" "$MAIN_RUN_FILE" 
     
-    # Menjalankan logic instalasi dari file JS
-    echo -e "${YELLOW}⏳ Menjalankan $INSTALL_CONFIG_FILE untuk download modules...${NC}"
-    node "$INSTALL_CONFIG_FILE"
-    
-    echo -e "${GREEN}✅ Instalasi Modules Selesai!${NC}"
+    # Jalankan logic instalasi modules
+    if [ -f "$INSTALL_CONFIG_FILE" ]; then
+        echo -e "${YELLOW}⏳ Menjalankan $INSTALL_CONFIG_FILE untuk download modules...${NC}"
+        node "$INSTALL_CONFIG_FILE"
+    else
+        echo -e "${RED}❌ GAGAL: $INSTALL_CONFIG_FILE tidak ditemukan. Salin kode dari Gemini!${NC}"
+    fi
+
+    echo -e "${GREEN}✅ Setup File dan Modules Selesai!${NC}"
+    echo -e "${YELLOW}LANGKAH WAJIB: Isi kode semua file JS dengan kode dari Gemini!${NC}"
     
     pause
 }
@@ -99,17 +116,30 @@ setup_whatsapp_auth() {
 # 3. Konfigurasi Gemini API
 setup_gemini_api() {
     display_header
-    # ... (Kode Konfigurasi Gemini API) ...
     echo -e "${PURPLE}>> 3. KONFIGURASI GEMINI API ${NC}"
     echo -e "----------------------------------------"
+    echo -e "Pilih Model yang kamu mau, Cuy:"
+    echo "1. gemini-pro"
+    echo "2. gemini-1.5-flash"
+    read -p "Pilihan Model [1/2]: " model_choice
+    
+    selected_model=""
+    case $model_choice in
+        1) selected_model="gemini-pro" ;;
+        2) selected_model="gemini-1.5-flash" ;;
+        *) echo -e "${RED}Pilihan tidak valid!${NC}"; pause; return ;;
+    esac
+    
     read -p "Masukan Apikey Gemini (Wajib!): " api_key
+
+    # Simpan konfigurasi (FIX: Pastikan format aman)
     echo "GEMINI_API_KEY=\"$api_key\"" > "$API_FILE"
-    echo "GEMINI_MODEL=\"gemini-1.5-flash\"" >> "$API_FILE"
-    echo -e "${GREEN}✅ Konfigurasi Gemini tersimpan!${NC}"
+    echo "GEMINI_MODEL=\"$selected_model\"" >> "$API_FILE"
+    echo -e "${GREEN}✅ Konfigurasi Gemini tersimpan di $API_FILE!${NC}"
     pause
 }
 
-# 4. Otentikasi WA (Membuat Session)
+# 4. Otentikasi WA
 authenticate_wa() {
     display_header
 
@@ -140,7 +170,7 @@ run_bot() {
     display_header
     
     # Cek Kunci (Semua wajib ✓)
-    if [ "$(check_nodejs_status)" != "✓" ] || [ "$(check_session_status)" != "✓" ] || [ "$(check_gemini_status)" != "✓" ] || [ "$(check_all_files_exist)" != "✓" ]; then
+    if [ "$(check_nodejs_status)" != "✓" ] || [ "$(check_session_status)" != "✓" ] || [ "$(check_gemini_status)" != "✓" ]; then
         echo -e "${RED}❌ KUNCI GAGAL: Semua status di atas harus '✓' sebelum RUN!${NC}"
         pause; return
     fi
@@ -169,9 +199,14 @@ pkg install ncurses -y > /dev/null 2>&1
 while true; do
     display_header
     
+    NODE_OK=$(check_nodejs_status)
+    GEMINI_OK=$(check_gemini_status)
+    SESSION_OK=$(check_session_status)
+    FILES_OK=$(check_all_files_exist) # Untuk cek keberadaan file JS
+
     # Kunci untuk Menu RUN (Menu 5)
     READY_TO_RUN="✗"
-    if [ "$(check_nodejs_status)" = "✓" ] && [ "$(check_session_status)" = "✓" ] && [ "$(check_gemini_status)" = "✓" ] && [ "$(check_all_files_exist)" = "✓" ]; then
+    if [ "$NODE_OK" = "✓" ] && [ "$SESSION_OK" = "✓" ] && [ "$GEMINI_OK" = "✓" ] && [ "$FILES_OK" = "✓" ]; then
         READY_TO_RUN="✓"
     fi
     
@@ -202,6 +237,6 @@ while true; do
         5) run_bot ;;
         0) echo -e "${CYAN}Sampai Jumpa, Cuy!${NC}"; exit 0 ;;
         *) echo -e "${RED}Pilihan tidak valid!${NC}"; pause ;;
-    esult/ncurses/bin/tput" ;;
     esac
 done
+# <--- PASTIKAN TIDAK ADA APA-APA LAGI DI BAWAH GARIS INI! --->
