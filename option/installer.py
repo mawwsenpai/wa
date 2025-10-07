@@ -1,5 +1,5 @@
 # --- installer.py ---
-# VERSI 6.0 - Edisi Langsung Eksekusi (Install First, Analyze Later)
+# VERSI FINAL - ANTI GAGAL & LANGSUNG EKSEKUSI
 
 import sys
 import subprocess
@@ -15,20 +15,19 @@ REQUIRED_PACKAGES = [
 def run_direct_installer():
     """
     Fungsi ini langsung mengeksekusi instalasi untuk setiap paket
-    dan memberikan laporan real-time, sesuai permintaan.
+    dan memberikan laporan real-time.
     """
     print("==============================================")
     print("      🚀 Asisten AI - Mode Eksekusi          ")
     print("==============================================")
-    
+
     all_success = True
-    
+
     # Langsung loop dan eksekusi
     for package in REQUIRED_PACKAGES:
-        # sys.stdout.write & .flush() untuk efek real-time
         sys.stdout.write(f"⚙️  Memastikan '{package}' dalam kondisi prima...")
         sys.stdout.flush()
-        
+
         try:
             # Jalankan perintah pip install dalam mode senyap
             subprocess.check_call(
@@ -36,16 +35,14 @@ def run_direct_installer():
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            # Jika berhasil, cetak status OK
             sys.stdout.write(" -> ✅ OK!\n")
-            
+
         except subprocess.CalledProcessError:
-            # Jika gagal, cetak status GAGAL
             sys.stdout.write(" -> ❌ GAGAL!\n")
             all_success = False
-        
+
     print("----------------------------------------------")
-    
+
     if all_success:
         print("✨ Semua sistem siap tempur!")
         return True
@@ -55,4 +52,4 @@ def run_direct_installer():
 
 if __name__ == "__main__":
     if not run_direct_installer():
-        sys.exit(1) # Keluar dengan status error jika ada yang gagal
+        sys.exit(1)
