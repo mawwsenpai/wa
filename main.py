@@ -1,65 +1,83 @@
 # --- main.py ---
-# VERSI 5.2 - Arsitektur Final & Super Stabil
+# VERSI 6.0 - Arsitektur Final, UI Konsisten & Anti Gagal
 
 import sys
-import subprocess
 import os
+import subprocess
 
-# --- Langkah #1: Jalankan Installer dengan Penanganan Error yang Kuat ---
-installer_path = "installer.py"
-print("--- Memulai Program Asisten AI ---")
+# --- Langkah #0: Menentukan Lokasi Diri Sendiri (Sangat Penting!) ---
+# Ini membuat script tahu di mana dia berada, jadi nggak akan bingung cari file lain
+# BASE_DIR adalah lokasi folder 'wa/'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-try:
-    if not os.path.exists(installer_path):
-        print(f"❌ FATAL: File '{installer_path}' tidak ditemukan!")
-        print("   Pastikan file installer sejajar dengan main.py.")
-        sys.exit() # Berhenti total jika installer tidak ada
+def run_installer():
+    """Mencari dan menjalankan installer.py dengan aman."""
+    installer_path = os.path.join(BASE_DIR, "installer.py")
+    try:
+        if not os.path.exists(installer_path):
+            print(f"❌ FATAL: File '{installer_path}' tidak ditemukan!")
+            return False
         
-    # Menjalankan installer dan menangkap status outputnya
-    # shell=False adalah praktik yang lebih aman
-    result = subprocess.run([sys.executable, installer_path])
-    
-    # Jika installer keluar dengan status error (return code bukan 0), hentikan program
-    if result.returncode != 0:
+        # Menjalankan installer dan menangkap status outputnya
+        result = subprocess.run([sys.executable, installer_path], check=True)
+        return result.returncode == 0
+        
+    except subprocess.CalledProcessError:
         print("\n❌ Proses instalasi dependensi gagal. Program tidak bisa dilanjutkan.")
-        sys.exit()
-    
-except Exception as e:
-    print(f"\n❌ Terjadi error tak terduga saat menjalankan installer: {e}")
-    sys.exit()
-
-# --- Langkah #2: Impor Modul-modul dengan Pesan Error Jelas ---
-try:
-    print("\n--- Mengimpor Modul Aplikasi ---")
-    from option.config_manager import muat_konfigurasi
-    from option.gemini_assistant import initialize_gemini
-    from option.ui_handler import start_menu
-    print("✅ Semua modul berhasil diimpor.")
-except ImportError as e:
-    print(f"❌ FATAL: Gagal mengimpor modul aplikasi. Error: {e}")
-    print("   Pastikan semua file .py ada di dalam folder 'option' dan `__init__.py` ada.")
-    sys.exit()
+        return False
+    except Exception as e:
+        print(f"\n❌ Terjadi error tak terduga saat menjalankan installer: {e}")
+        return False
 
 def main():
-    """Fungsi utama untuk menjalankan aplikasi."""
+    """Fungsi utama untuk menjalankan seluruh alur aplikasi."""
+    
+    # --- Tampilan Pembuka ---
+    print("==============================================")
+    print("      🚀 Memulai Asisten AI Termux...         ")
+    print("==============================================")
+
+    # --- Langkah #1: Jalankan Installer ---
+    if not run_installer():
+        sys.exit(1) # Keluar jika instalasi gagal
+
+    # --- Langkah #2: Impor Modul-modul Kita ---
+    # Kita tambahkan path folder 'option' ke path sistem Python
+    # Ini adalah cara paling anti-gagal untuk memastikan modul ditemukan
+    sys.path.append(os.path.join(BASE_DIR, 'option'))
+    
+    try:
+        from config_manager import muat_konfigurasi
+        from gemini_assistant import initialize_gemini
+        from ui_handler import start_menu
+    except ImportError as e:
+        print(f"\n❌ FATAL: Gagal mengimpor modul dari 'option'. Error: {e}")
+        print("   Pastikan semua file .py dan `__init__.py` ada di dalam folder 'option'.")
+        sys.exit(1)
+
+    # --- Langkah #3: Muat Konfigurasi ---
     print("\n--- Memuat Konfigurasi ---")
     config = muat_konfigurasi()
     if not config:
         print("❌ Gagal memuat konfigurasi. Program berhenti.")
-        sys.exit()
+        sys.exit(1)
     
+    # --- Langkah #4: Hubungkan ke Gemini AI ---
     print("\n--- Menghubungkan ke Gemini AI ---")
     api_key = config.get("gemini_api_key")
     if not api_key:
-        print("❌ Kunci API tidak ditemukan di file konfigurasi. Jalankan ulang setup.")
-        sys.exit()
+        print("❌ Kunci API tidak ditemukan di config. Jalankan ulang setup.")
+        sys.exit(1)
         
     gemini_model = initialize_gemini(api_key)
     if not gemini_model:
         print("❌ Gagal terhubung ke Gemini. Program berhenti.")
-        sys.exit()
+        sys.exit(1)
         
-    # Jika semua berhasil, jalankan menu utama
+    # --- Langkah #5: Jalankan Menu Utama ---
+    # Kita kasih jeda sedikit biar keliatan lebih profesional
+    import time
+    time.sleep(1) 
     start_menu(gemini_model)
 
 if __name__ == "__main__":

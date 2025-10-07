@@ -1,68 +1,89 @@
 # --- installer.py ---
-# VERSI 2.0 - Super Stabil & Modern
+# VERSI 4.0 - UI Bersih & Cerdas
 
 import sys
 import subprocess
+from importlib import metadata
 
 # --- DAFTAR BELANJA / DEPENDENSI YANG DIBUTUHKAN ---
 REQUIRED_PACKAGES = [
     "google-generativeai",
     "pywhatkit",
-    "setuptools" # Tetap kita pastikan terinstall untuk jaga-jaga
+    "setuptools" 
 ]
 
 def check_package(package_name):
-    """Mengecek satu package menggunakan cara modern."""
+    """Mengecek satu package, mengembalikan True jika ada, False jika tidak ada."""
     try:
-        # Python 3.8+ punya importlib.metadata
-        from importlib import metadata
         metadata.version(package_name)
         return True
-    except ImportError:
-        # Fallback untuk Python versi lama (kurang direkomendasikan)
-        try:
-            import pkg_resources
-            pkg_resources.get_distribution(package_name)
-            return True
-        except Exception:
-            return False
-    except Exception:
+    except metadata.PackageNotFoundError:
         return False
 
 def install_package(package_name):
-    """Menginstal satu package menggunakan pip."""
+    """Menginstal satu package menggunakan pip dengan output yang bersih."""
     try:
-        print(f"📦 Menginstal '{package_name}'...")
-        # Menjalankan perintah 'pip install' dari dalam script
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package_name])
-        print(f"   -> '{package_name}' berhasil diinstal/di-upgrade.")
+        # Menjalankan perintah pip, menyembunyikan output standar yang berisik
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", "--upgrade", package_name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
         return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ GAGAL menginstal '{package_name}'. Error: {e}")
+    except subprocess.CalledProcessError:
         return False
 
-def run_installer():
-    """Fungsi utama untuk menjalankan seluruh proses instalasi."""
+def run_smart_installer():
+    """Fungsi utama dengan UI yang bersih dan logika yang cerdas."""
     print("==============================================")
-    print("🔍 Menganalisis dan Memeriksa Dependensi...")
+    print("      🚀 Asisten AI - Pengecekan Sistem      ")
     print("==============================================")
     
-    all_good = True
+    to_install = []
+    already_installed = []
+
+    # --- TAHAP ANALISIS ---
+    print("🔍 Menganalisis dependensi yang dibutuhkan...")
     for package in REQUIRED_PACKAGES:
-        print(f"   -> Mengecek '{package}'...")
-        if not check_package(package):
-            print(f"   ❗ '{package}' tidak ditemukan atau perlu di-update.")
-            if not install_package(package):
-                all_good = False
+        if check_package(package):
+            already_installed.append(package)
+        else:
+            to_install.append(package)
     
+    # --- TAHAP LAPORAN ---
+    print("\n--- Laporan Status ---")
+    for package in already_installed:
+        print(f"  [✅] {package:25} -> OK!")
+    
+    if not to_install:
+        print("\n✨ Semua dependensi sudah lengkap. Sistem siap!")
+        print("----------------------------------------------")
+        return True
+        
+    for package in to_install:
+        print(f"  [📦] {package:25} -> Perlu diinstal")
+
+    # --- TAHAP EKSEKUSI ---
+    print("\n--- Memulai Proses Instalasi ---")
+    all_success = True
+    for package in to_install:
+        sys.stdout.write(f"  -> Menginstal {package}...")
+        sys.stdout.flush() # Memaksa teks untuk tampil sekarang
+        
+        if install_package(package):
+            sys.stdout.write(" -> BERHASIL!\n")
+        else:
+            sys.stdout.write(" -> GAGAL!\n")
+            all_success = False
+
     print("----------------------------------------------")
-    if all_good:
-        print("✅ Semua dependensi siap!")
+    if all_success:
+        print("✨ Instalasi selesai. Sistem siap!")
         return True
     else:
-        print("❌ Beberapa dependensi gagal diinstal. Coba instal manual.")
+        print("❌ Beberapa instalasi gagal. Coba cek koneksi internet atau jalankan manual.")
         return False
 
 if __name__ == "__main__":
-    if not run_installer():
-        sys.exit(1) # Keluar dengan status error jika instalasi gagal
+    if not run_smart_installer():
+        sys.exit(1)
