@@ -1,4 +1,4 @@
-// wa-config.js - Versi Kode 8 Digit (Rentan Error 428)
+// wa-config.js - Versi QR Code (Paling Stabil)
 
 const {
   makeWASocket,
@@ -7,63 +7,57 @@ const {
   DisconnectReason
 } = require('@whiskeysockets/baileys');
 
+// Catatan: Nomor HP tidak digunakan di versi QR, tapi kita biarkan saja
 const phoneNumber = process.env.PHONE_NUMBER;
 
 async function startAuth() {
-  console.log(`[AUTH] Memulai Proses Otentikasi WA (Metode Kode 8 Digit)...`);
+  console.log(`[AUTH] Memulai Proses Otentikasi WA (Metode QR Code)...`);
   
   const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
   const { version } = await fetchLatestBaileysVersion();
   
+  // Check apakah sudah terdaftar
   if (state.creds.registered) {
     console.log("✅ WA Sudah terdaftar (Session Aktif). Hapus folder 'auth_info_baileys' untuk memulai ulang.");
     return;
   }
   
-  if (!phoneNumber) {
-    console.error("❌ ERROR: Nomor HP belum disetel di Menu 2 main.sh!");
-    process.exit(1);
-  }
-  
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: false,
+    // AKTIFKAN INI: QR Code akan muncul di terminal
+    printQRInTerminal: true,
     browser: ['MawwScriptV5', 'Chrome', '110.0.0.0'],
   });
   
+  // Event Listener buat menyimpan kredensial
   sock.ev.on('creds.update', saveCreds);
   
-  try {
-    const pairingCode = await sock.requestPairingCode(phoneNumber);
+  // Event Listener buat status koneksi
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect, qr } = update;
     
-    console.log(`\n======================================`);
-    console.log(`🔥 KODE OTENTIKASI (8 DIGIT) KAMU: ${pairingCode}`);
-    console.log(`MASUKKAN KODE INI SEGERA DI HP KAMU (Tautkan dengan Nomor Telepon).`);
-    console.log(`======================================\n`);
+    if (qr) {
+      console.log('\n======================================');
+      console.log('🔥 QR CODE MUNCUL! SCAN SEKARANG JUGA.');
+      console.log('======================================');
+    }
     
-    sock.ev.on('connection.update', (update) => {
-      if (update.connection === 'open') {
-        console.log('✅ OTENTIKASI SUKSES! Session tersimpan. Kamu bisa menjalankan Menu 5 sekarang.');
-        process.exit(0);
+    if (connection === 'open') {
+      console.log('\n✅ OTENTIKASI SUKSES! Session tersimpan. Kamu bisa menjalankan Menu 5 sekarang.');
+      process.exit(0); // Keluar dari script setelah sukses
+    }
+    
+    if (connection === 'close') {
+      const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+      if (!shouldReconnect) {
+        console.log(`\n❌ GAGAL OTENTIKASI: Session ditolak. Harap hapus folder 'auth_info_baileys' dan coba lagi.`);
+      } else {
+        // Di sini bisa ditambahkan logika coba lagi jika gagal
       }
-      if (update.connection === 'close' && update.lastDisconnect) {
-        const reason = update.lastDisconnect.error?.output?.statusCode;
-        if (reason === DisconnectReason.loggedOut) {
-          console.log(`\n❌ GAGAL OTENTIKASI: Di-logout.`);
-        } else if (reason === 428) {
-          console.log(`\n❌ GAGAL OTENTIKASI: Error 428 (Connection Closed/Protocol). Coba lagi atau HAPUS folder sesi!`);
-        }
-      }
-    });
-    
-  } catch (error) {
-    // Blok ini menangkap error yang kamu dapatkan (Connection Closed)
-    console.error(`\n❌ GAGAL MENGAMBIL KODE OTENTIKASI!`);
-    console.error(`Error: ${error.output?.payload?.message || error.message}`);
-    console.error(`SOLUSI: Harap hapus folder 'auth_info_baileys' dan coba lagi.`);
-    process.exit(1);
-  }
+      process.exit(1);
+    }
+  });
 }
 
 startAuth();
