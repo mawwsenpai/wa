@@ -1,4 +1,4 @@
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; PURPLE='\033[0;35m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; PURPLE='\033[0;35m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m' WHITE='\033[1;37m'
 TICK="✅"; CROSS="❌"; WARN="⚠️"
 ENV_FILE=".env"; INSTALL_SCRIPT="install.js"; AUTH_SCRIPT="auth.js"; MAIN_SCRIPT="main.js"; AUTH_DIR="auth_info_baileys"; MODULES_DIR="node_modules"; VERSION="V6.1"
 
@@ -16,9 +16,19 @@ check_dependencies() {
 display_header() {
     clear
     echo ""
-    echo -e "${CYAN}"
+
+    echo -e "${WHITE}"
     figlet -c -f smslant "Script-Wa"
-    echo -e "${PURPLE}      » v6.1-Stabil by MawwSenpai_ «      ${NC}"
+    
+    local subtitle="» v6.1-Stabil by MawwSenpai_ «"
+    local terminal_width=$(tput cols)
+    local subtitle_length=${#subtitle}
+    local padding=$(((terminal_width - subtitle_length) / 2))
+    
+    echo -e "${PURPLE}"
+    printf "%*s%s\n" "$padding" "" "$subtitle"
+    echo -e "${NC}"
+
     echo ""
 }
 
