@@ -1,26 +1,14 @@
-// install.js - Versi 2.2 - Menambahkan Express & Socket.IO
+// install.js - Versi 2.3 - Perbaikan error 'ora'
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const chalk = require('chalk');
 
+// Daftar modul tetap lengkap
 const MODULES = [
-    // Kebutuhan Inti Bot & Server
-    '@whiskeysockets/baileys',
-    '@google/genai',
-    'dotenv',
-    'chalk@4',
-    'express', // <-- DITAMBAHKAN
-    'socket.io', // <-- DITAMBAHKAN
-    // Untuk Tampilan & UI
-    'qrcode-terminal',
-    'figlet',
-    'ora',
-    // Untuk Fitur Tambahan
-    'yt-search',
-    'ytdl-core',
-    'google-it',
-    'axios'
+    'express', 'socket.io', '@whiskeysockets/baileys', '@google/genai',
+    'dotenv', 'chalk@4', 'qrcode-terminal', 'figlet', 'ora', 'yt-search',
+    'ytdl-core', 'google-it', 'axios'
 ];
 
 const ENV_EXAMPLE = `# --- Konfigurasi Utama ---\nGEMINI_API_KEY=\nGEMINI_MODEL=gemini-1.5-flash\nPHONE_NUMBER=\n\n# --- Kunci API untuk Fitur Tambahan ---\nUNSPLASH_API_KEY=\nWEATHER_API_KEY=\n`;
@@ -34,38 +22,38 @@ const runCommand = (command) => {
     }
 };
 
+// Menggunakan async () agar tetap konsisten, tapi tanpa import ora
 (async () => {
-    console.log(chalk.cyan.bold("🔥 Memulai Proses Instalasi & Pembaruan Bot..."));
+    console.log(chalk.cyan.bold("🔥 Memulai Proses Instalasi & Penyiapan Bot..."));
     console.log("-------------------------------------------------");
-    const { default: ora } = await import('ora');
-    const spinner = ora({ text: 'Mempersiapkan...', spinner: 'dots' });
     
     try {
-        spinner.start('Mengecek package.json...');
+        console.log('⏳ Mengecek package.json...');
         if (!fs.existsSync('package.json')) {
             execSync('npm init -y', { stdio: 'pipe' });
-            spinner.succeed('package.json berhasil dibuat.');
+            console.log('✅ package.json berhasil dibuat.');
         } else {
-            spinner.succeed('package.json sudah ada.');
+            console.log('✅ package.json sudah ada.');
         }
         
-        spinner.start(`Menginstal ${MODULES.length} modul... Ini mungkin butuh beberapa saat.`);
+        console.log(`⏳ Menginstal ${MODULES.length} modul... Ini mungkin butuh beberapa saat.`);
         runCommand(`npm install ${MODULES.join(' ')}`);
-        spinner.succeed(chalk.green('Semua modul Node.js berhasil diinstal!'));
+        console.log(chalk.green('✅ Semua modul Node.js berhasil diinstal!'));
         
-        spinner.start('Mengecek file konfigurasi .env...');
+        console.log('⏳ Mengecek file konfigurasi .env...');
         if (!fs.existsSync('.env')) {
             fs.writeFileSync('.env', ENV_EXAMPLE);
-            spinner.succeed('File .env (dengan template lengkap) berhasil dibuat.');
+            console.log('✅ File .env (dengan template lengkap) berhasil dibuat.');
         } else {
-            spinner.succeed('File .env sudah ada.');
+            console.log('✅ File .env sudah ada.');
         }
         
         console.log("-------------------------------------------------");
         console.log(chalk.green.bold("✅ Penyiapan Selesai!"));
+        console.log(chalk.yellow("Lanjutkan ke Menu 2 untuk konfigurasi jika diperlukan."));
         
     } catch (error) {
-        spinner.fail(chalk.red(`Instalasi Gagal: ${error.message}`));
+        console.log(chalk.red(`\n❌ Instalasi Gagal: ${error.message}`));
         process.exit(1);
     }
 })();
