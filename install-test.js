@@ -1,24 +1,34 @@
-// install-test.js - Installer Khusus untuk Server Uji Coba Lokal
+// install-test.js - Installer Lengkap untuk Server Uji Coba Lokal
 
 const { execSync } = require('child_process');
 const chalk = require('chalk');
 
-// Dependensi HANYA untuk server uji coba
+// Dependensi LENGKAP yang dibutuhkan oleh server DAN logika bot (script.js, gemini.js)
 const MODULES = [
+  // Kebutuhan Server
   'express',
   'socket.io',
-  'chalk@4' // Diperlukan oleh server.js untuk log berwarna
+  // Kebutuhan Bot
+  '@google/genai',
+  'dotenv',
+  'chalk@4',
+  'axios',
+  'yt-search',
+  'ytdl-core',
+  'google-it',
+  'figlet',
+  'ora'
 ];
 
-console.log(chalk.cyan.bold("🔥 Memulai Instalasi Dependensi untuk Server Uji Coba..."));
+console.log(chalk.cyan.bold("🔥 Memulai Instalasi Lengkap untuk Server Uji Coba..."));
 console.log("----------------------------------------------------------");
 
 try {
-  console.log(`⏳ Menginstal modul: ${MODULES.join(', ')}...`);
+  console.log(`⏳ Menginstal ${MODULES.length} modul... Ini mungkin butuh beberapa saat.`);
   execSync(`npm install ${MODULES.join(' ')}`, { stdio: 'inherit' });
-  console.log(chalk.green("✅ Dependensi untuk server uji coba berhasil diinstal!"));
+  console.log(chalk.green("✅ Semua dependensi untuk server uji coba berhasil diinstal!"));
   console.log("----------------------------------------------------------");
 } catch (error) {
-  console.error(chalk.red(`\n❌ Gagal menginstal dependensi uji coba: ${error.message}`));
+  console.error(chalk.red(`\n❌ Gagal menginstal dependensi: ${error.message}`));
   process.exit(1);
 }
