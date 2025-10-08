@@ -1,18 +1,17 @@
-// install.js - Versi 4.0 - Final dengan Versi Library Spesifik
+// install.js - Versi 4.1 - Anti-Gagal (Tanpa dependensi eksternal)
 
 const { execSync } = require('child_process');
 const fs = require('fs');
-const chalk = require('chalk');
 
-// Daftar LENGKAP dengan versi spesifik untuk kompatibilitas
+// Daftar LENGKAP semua modul yang dibutuhkan oleh proyek ini
 const MODULES = [
     // Kebutuhan Server & Bot
     'express',
     'socket.io',
     '@whiskeysockets/baileys',
-    '@google/genai@0.2.0', // <-- VERSI LAMA YANG KOMPATIBEL
+    '@google/genai@0.2.0', // Versi lama yang kompatibel
     'dotenv',
-    'chalk@4',
+    'chalk@4', // Tetap diinstal untuk skrip lain
     'axios',
     'yt-search',
     'ytdl-core',
@@ -24,7 +23,8 @@ const MODULES = [
 
 const ENV_EXAMPLE = `# --- Konfigurasi Utama ---\nGEMINI_API_KEY=\nGEMINI_MODEL=gemini-1.5-flash\nPHONE_NUMBER=\n\n# --- Kunci API untuk Fitur Tambahan ---\nUNSPLASH_API_KEY=\nWEATHER_API_KEY=\n`;
 
-console.log(chalk.cyan.bold("🔥 Memulai Proses Instalasi & Penyiapan Universal..."));
+// --- MULAI PROSES INSTALASI ---
+console.log("🔥 Memulai Proses Instalasi & Penyiapan Universal...");
 console.log("----------------------------------------------------------");
 
 try {
@@ -38,7 +38,7 @@ try {
     
     console.log(`⏳ Menginstal ${MODULES.length} modul... Ini mungkin butuh beberapa saat.`);
     execSync(`npm install ${MODULES.join(' ')}`, { stdio: 'inherit' });
-    console.log(chalk.green('✅ Semua modul berhasil diinstal!'));
+    console.log('✅ Semua modul berhasil diinstal!');
     
     console.log('⏳ Mengecek file konfigurasi .env...');
     if (!fs.existsSync('.env')) {
@@ -49,9 +49,9 @@ try {
     }
     
     console.log("----------------------------------------------------------");
-    console.log(chalk.green.bold("✅ Penyiapan Selesai!"));
+    console.log("✅ Penyiapan Selesai!");
     
 } catch (error) {
-    console.error(chalk.red(`\n❌ Gagal menginstal dependensi: ${error.message}`));
+    console.error(`\n❌ Gagal menginstal dependensi: ${error.message}`);
     process.exit(1);
 }
