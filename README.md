@@ -1,7 +1,7 @@
+# Script Bot-Whatsapp
 <div align="center">
-  <pre>Script WhatsApp
-  </pre>
-  <h3>v6.1-Stabil by MawwSenpai_</h3>
+  <pre>v6.1-Stabil by MawwSenpai_</pre>
+  <h3></h3>
 </div>
 
 ---
