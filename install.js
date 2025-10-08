@@ -1,29 +1,26 @@
-// install.js - Versi 2.0 - Installer Komprehensif
+// install.js - Versi 2.1 - Installer dengan template .env lengkap
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const chalk = require('chalk');
 
-// Daftar modul yang lebih lengkap untuk fitur masa depan
 const MODULES = [
-    // Kebutuhan Inti
-    '@whiskeysockets/baileys',
-    '@google/genai',
-    'dotenv',
-    'chalk@4',
-    // Untuk Tampilan & UI
-    'qrcode-terminal',
-    'figlet',
-    'ora',
-    // Untuk Fitur Tambahan
-    'yt-search', // Untuk mencari video YouTube
-    'ytdl-core', // Untuk mengunduh audio/video dari YouTube
-    'google-it', // Untuk melakukan pencarian Google
-    'axios' // Untuk request HTTP (misal: cek IP, info cuaca, dll)
+    '@whiskeysockets/baileys', '@google/genai', 'dotenv', 'chalk@4',
+    'qrcode-terminal', 'figlet', 'ora', 'yt-search', 'ytdl-core',
+    'google-it', 'axios'
 ];
 
-const ENV_EXAMPLE = `GEMINI_API_KEY=\nGEMINI_MODEL=gemini-1.5-flash\nPHONE_NUMBER=`;
+// TEMPLATE .ENV SEKARANG LENGKAP DENGAN SEMUA KEBUTUHAN API KEY
+const ENV_EXAMPLE = `# --- Konfigurasi Utama ---
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-1.5-flash
+PHONE_NUMBER=
 
-// Fungsi untuk menjalankan perintah dengan output yang bersih
+# --- Kunci API untuk Fitur Tambahan ---
+UNSPLASH_API_KEY=
+WEATHER_API_KEY=
+`;
+
 const runCommand = (command) => {
     try {
         execSync(command, { stdio: 'inherit' });
@@ -36,8 +33,6 @@ const runCommand = (command) => {
 (async () => {
     console.log(chalk.cyan.bold("🔥 Memulai Proses Instalasi & Penyiapan Bot..."));
     console.log("-------------------------------------------------");
-    
-    // Impor ora secara dinamis karena dia ESM
     const { default: ora } = await import('ora');
     const spinner = ora({ text: 'Mempersiapkan...', spinner: 'dots' });
     
@@ -50,14 +45,14 @@ const runCommand = (command) => {
             spinner.succeed('package.json sudah ada.');
         }
         
-        spinner.start(`Menginstal ${MODULES.length} modul... Ini mungkin butuh beberapa saat.`);
+        spinner.start(`Menginstal ${MODULES.length} modul...`);
         runCommand(`npm install ${MODULES.join(' ')}`);
         spinner.succeed(chalk.green('Semua modul Node.js berhasil diinstal!'));
         
         spinner.start('Mengecek file konfigurasi .env...');
         if (!fs.existsSync('.env')) {
             fs.writeFileSync('.env', ENV_EXAMPLE);
-            spinner.succeed('File .env berhasil dibuat.');
+            spinner.succeed('File .env (dengan template lengkap) berhasil dibuat.');
         } else {
             spinner.succeed('File .env sudah ada.');
         }
