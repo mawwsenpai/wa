@@ -1,25 +1,29 @@
-// install.js - Versi 2.1 - Installer dengan template .env lengkap
+// install.js - Versi 2.2 - Menambahkan Express & Socket.IO
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const chalk = require('chalk');
 
 const MODULES = [
-    '@whiskeysockets/baileys', '@google/genai', 'dotenv', 'chalk@4',
-    'qrcode-terminal', 'figlet', 'ora', 'yt-search', 'ytdl-core',
-    'google-it', 'axios'
+    // Kebutuhan Inti Bot & Server
+    '@whiskeysockets/baileys',
+    '@google/genai',
+    'dotenv',
+    'chalk@4',
+    'express', // <-- DITAMBAHKAN
+    'socket.io', // <-- DITAMBAHKAN
+    // Untuk Tampilan & UI
+    'qrcode-terminal',
+    'figlet',
+    'ora',
+    // Untuk Fitur Tambahan
+    'yt-search',
+    'ytdl-core',
+    'google-it',
+    'axios'
 ];
 
-// TEMPLATE .ENV SEKARANG LENGKAP DENGAN SEMUA KEBUTUHAN API KEY
-const ENV_EXAMPLE = `# --- Konfigurasi Utama ---
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-1.5-flash
-PHONE_NUMBER=
-
-# --- Kunci API untuk Fitur Tambahan ---
-UNSPLASH_API_KEY=
-WEATHER_API_KEY=
-`;
+const ENV_EXAMPLE = `# --- Konfigurasi Utama ---\nGEMINI_API_KEY=\nGEMINI_MODEL=gemini-1.5-flash\nPHONE_NUMBER=\n\n# --- Kunci API untuk Fitur Tambahan ---\nUNSPLASH_API_KEY=\nWEATHER_API_KEY=\n`;
 
 const runCommand = (command) => {
     try {
@@ -31,7 +35,7 @@ const runCommand = (command) => {
 };
 
 (async () => {
-    console.log(chalk.cyan.bold("🔥 Memulai Proses Instalasi & Penyiapan Bot..."));
+    console.log(chalk.cyan.bold("🔥 Memulai Proses Instalasi & Pembaruan Bot..."));
     console.log("-------------------------------------------------");
     const { default: ora } = await import('ora');
     const spinner = ora({ text: 'Mempersiapkan...', spinner: 'dots' });
@@ -45,7 +49,7 @@ const runCommand = (command) => {
             spinner.succeed('package.json sudah ada.');
         }
         
-        spinner.start(`Menginstal ${MODULES.length} modul...`);
+        spinner.start(`Menginstal ${MODULES.length} modul... Ini mungkin butuh beberapa saat.`);
         runCommand(`npm install ${MODULES.join(' ')}`);
         spinner.succeed(chalk.green('Semua modul Node.js berhasil diinstal!'));
         
@@ -58,8 +62,7 @@ const runCommand = (command) => {
         }
         
         console.log("-------------------------------------------------");
-        console.log(chalk.green.bold("✅ Penyiapan Selesai! Fondasi bot Anda sudah siap."));
-        console.log(chalk.yellow("Lanjutkan ke Menu 2 untuk konfigurasi."));
+        console.log(chalk.green.bold("✅ Penyiapan Selesai!"));
         
     } catch (error) {
         spinner.fail(chalk.red(`Instalasi Gagal: ${error.message}`));
