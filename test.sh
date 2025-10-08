@@ -1,10 +1,10 @@
 #!/bin/bash
 # =======================================================
-# test.sh - Skrip Mandiri untuk Uji Coba Lokal
+# test.sh - Skrip Uji Coba Lokal (Menggunakan Master Installer)
 # =======================================================
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
 SERVER_SCRIPT="server.js"
-INSTALL_TEST_SCRIPT="install-test.js"
+INSTALL_SCRIPT="install.js" # <-- Diubah ke install.js
 
 check_dependencies() {
     local missing_deps=(); command -v node &>/dev/null || missing_deps+=("nodejs"); command -v termux-open-url &>/dev/null || missing_deps+=("termux-api")
@@ -14,16 +14,14 @@ check_dependencies() {
     fi
 }
 
-# --- LOGIKA UTAMA SKRIP ---
 check_dependencies
 clear
 echo -e "\n${CYAN}${BOLD}--- Mempersiapkan Lingkungan Uji Coba Lokal ---${NC}\n"
 
-# Langkah 1: Jalankan installer khusus untuk server uji coba
-if [ -f "$INSTALL_TEST_SCRIPT" ]; then
-    node "$INSTALL_TEST_SCRIPT"
+if [ -f "$INSTALL_SCRIPT" ]; then
+    node "$INSTALL_SCRIPT"
 else
-    echo -e "${RED}File ${INSTALL_TEST_SCRIPT} tidak ditemukan!${NC}"
+    echo -e "${RED}File ${INSTALL_SCRIPT} tidak ditemukan!${NC}"
     exit 1
 fi
 
@@ -32,13 +30,11 @@ if [ ! -f "$SERVER_SCRIPT" ]; then
     exit 1
 fi
 
-# Langkah 2: Jalankan server di latar belakang
 echo -e "\n${YELLOW}⏳ Memulai server di http://localhost:3000...${NC}"
 node "$SERVER_SCRIPT" &
 server_pid=$!
 sleep 3
 
-# Langkah 3: Buka browser
 echo -e "${GREEN}🚀 Membuka browser...${NC}"
 termux-open-url http://localhost:3000
 
