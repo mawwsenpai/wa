@@ -20,14 +20,15 @@ check_dependencies() {
 display_header() {
     clear
     echo -e "${CYAN}"
-    figlet -c -f small "MAWW SCRIPT"
-    echo -e "${PURPLE}                           v6.1-Stabil${NC}"
+    figlet -c -f small "BOT-WHATSAPP"
+    echo -e "${PURPLE}  MawwScript v6.1-Stabil${NC}"
     echo ""
 }
 
 # FUNGSI DIPERBARUI: Tampilan Status lebih detail
 display_status() {
-    echo -e "${PURPLE}╔═════════════════════════ S T A T U S ═════════════════════════${NC}"
+    echo -e "${PURPLE}╔═════════════════════════${NC}"
+    echo -e "${PURPLE}║  S T A T U S${NC}"
     if command -v node &> /dev/null; then echo -e "${PURPLE}║ ${GREEN}${TICK} Node.js${NC} : Terinstal ($(node -v))"; else echo -e "${PURPLE}║ ${RED}${CROSS} Node.js${NC} : Belum terinstal"; fi
     if [ -d "$MODULES_DIR" ]; then echo -e "${PURPLE}║ ${GREEN}${TICK} Modules${NC}   : Siap digunakan"; else echo -e "${PURPLE}║ ${RED}${CROSS} Modules${NC}   : Belum diinstal (Menu 1)"; fi
     
@@ -43,7 +44,7 @@ display_status() {
     fi
 
     if [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ]; then echo -e "${PURPLE}║ ${GREEN}${TICK} Sesi WA${NC}   : Aktif"; else echo -e "${PURPLE}║ ${RED}${CROSS} Sesi WA${NC}   : Tidak aktif (Menu 3)"; fi
-    echo -e "${PURPLE}╚═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${PURPLE}╚══════════════════════════════════════════${NC}"
 }
 pause() { echo ""; read -p "Tekan [Enter] untuk kembali ke menu..."; }
 
@@ -100,16 +101,16 @@ check_dependencies
 while true; do
     display_header; display_status; READY_TO_RUN=false
     if [ -d "$MODULES_DIR" ] && [ -f "$ENV_FILE" ] && grep -q "GEMINI_API_KEY=." "$ENV_FILE" && [ -d "$AUTH_DIR" ]; then READY_TO_RUN=true; fi
-    echo -e "${PURPLE}╔══════════════════════ M E N U   U T A M A ═════════════════════╗${NC}"
-    echo -e "${PURPLE}║                                                                 ║${NC}"
+    echo -e "${PURPLE}╔═══════════════════════════════════════════${NC}"
+    echo -e "${PURPLE}║ M E N U   U T A M A                                                              ${NC}"
     echo -e "${PURPLE}║  ${CYAN}1. Install / Update Modules${NC}                              "
     echo -e "${PURPLE}║  ${CYAN}2. Konfigurasi Bot (Semua API Key)${NC}                      "
     echo -e "${PURPLE}║  ${CYAN}3. Hubungkan Akun WhatsApp${NC}                               "
-    if $READY_TO_RUN; then echo -e "${PURPLE}║  ${GREEN}${BOLD}4. Jalankan Bot${NC}                                          ║"; else echo -e "${PURPLE}║  ${RED}4. Jalankan Bot (Belum Siap)${NC}                              "; fi
+    if $READY_TO_RUN; then echo -e "${PURPLE}║  ${GREEN}${BOLD}4. Jalankan Bot${NC}                                          "; else echo -e "${PURPLE}║  ${RED}4. Jalankan Bot (Belum Siap)${NC}                              "; fi
     echo -e "${PURPLE}║  ${YELLOW}5. Reset Sesi WhatsApp${NC}                                   "
     echo -e "${PURPLE}║  ${RED}0. Keluar dari Skrip${NC}                                     "
-    echo -e "${PURPLE}║                                                                 ║${NC}"
-    echo -e "${PURPLE}╚═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${PURPLE}║                                                                 ${NC}"
+    echo -e "${PURPLE}╚═══════════════════${NC}"
     read -p "Masukkan pilihan Anda: " choice
     case $choice in 1) run_installation;; 2) setup_env_config;; 3) run_authentication;; 4) run_bot;; 5) reset_session;; 0) echo -e "\n${CYAN}Sampai jumpa!${NC}"; exit 0;; *) echo -e "\n${RED}Pilihan salah!${NC}"; pause;; esac
 done
