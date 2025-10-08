@@ -1,6 +1,6 @@
 #!/bin/bash
 # =======================================================
-# main.sh (V8.0 - All-in-One dengan Instalasi Bersih)
+# main.sh (V8.0 - Paket Final Absolut)
 # =======================================================
 # --- KONFIGURASI WARNA & SIMBOL ---
 YELLOW='\033[0;33m'; PURPLE='\033[0;35m'; CYAN='\033[0;36m'; WHITE='\033[1;37m'; NC='\033[0m'; BOLD='\033[1m'
@@ -28,30 +28,21 @@ display_status() {
 pause() { echo ""; read -p "Tekan [Enter] untuk kembali..."; }
 
 # --- FUNGSI-FUNGSI UTAMA ---
-
-# FUNGSI BARU: Instalasi Bersih & Verifikasi
 run_clean_installation() {
-    display_header
-    echo -e "\n${CYAN}--- Menu 1: Instalasi Bersih (Perbaikan Total) ---\n${NC}"
-    echo -e "${YELLOW}Langkah 1: Pembersihan Paksa (Nuklir)...${NC}"
-    if [ -d "node_modules" ]; then rm -rf node_modules; echo "  ${CYAN}${SUCCESS_ICON} Folder node_modules dihapus.${NC}"; fi
+    display_header; echo -e "\n${CYAN}--- Menu 1: Instalasi Bersih (Perbaikan Total) ---\n${NC}"
+    echo -e "${YELLOW}Langkah 1: Pembersihan Paksa...${NC}"; if [ -d "node_modules" ]; then rm -rf node_modules; echo "  ${CYAN}${SUCCESS_ICON} Folder node_modules dihapus.${NC}"; fi
     if [ -f "package-lock.json" ]; then rm package-lock.json; echo "  ${CYAN}${SUCCESS_ICON} File package-lock.json dihapus.${NC}"; fi
-    echo ""
-    echo -e "${YELLOW}Langkah 2: Menjalankan Instalasi Bersih...${NC}"
-    node "$INSTALL_SCRIPT"
+    echo ""; echo -e "${YELLOW}Langkah 2: Menjalankan Instalasi Bersih...${NC}"; node "$INSTALL_SCRIPT"
     if [ $? -ne 0 ]; then echo -e "\n${YELLOW}${WARN_ICON} Instalasi modul gagal.${NC}"; pause; return; fi
-    echo ""
-    echo -e "${YELLOW}Langkah 3: Verifikasi Akurat Hasil Instalasi...${NC}"
+    echo ""; echo -e "${YELLOW}Langkah 3: Verifikasi Akurat Hasil Instalasi...${NC}"
     all_ok=true
     node -e "try { require('@google/genai'); console.log('\x1b[36m✓ @google/genai\x1b[0m : Ditemukan dan bisa diakses.'); } catch (e) { console.error('\x1b[33m⚠️ @google/genai\x1b[0m : GAGAL diakses!'); process.exit(1); }"
     if [ $? -ne 0 ]; then all_ok=false; fi
     node -e "try { require('@whiskeysockets/baileys'); console.log('\x1b[36m✓ @whiskeysockets/baileys\x1b[0m : Ditemukan dan bisa diakses.'); } catch (e) { console.error('\x1b[33m⚠️ @whiskeysockets/baileys\x1b[0m : GAGAL diakses!'); process.exit(1); }"
     if [ $? -ne 0 ]; then all_ok=false; fi
-    echo ""
-    if $all_ok; then echo -e "${CYAN}${BOLD}ANALISIS FINAL: SEMUA KOMPONEN UTAMA BERHASIL DIINSTAL & DIVERIFIKASI!${NC}"; else echo -e "${YELLOW}${BOLD}ANALISIS FINAL: GAGAL! Ada masalah saat instalasi.${NC}"; fi
+    echo ""; if $all_ok; then echo -e "${CYAN}${BOLD}ANALISIS FINAL: SEMUA KOMPONEN UTAMA BERHASIL DIINSTAL & DIVERIFIKASI!${NC}"; else echo -e "${YELLOW}${BOLD}ANALISIS FINAL: GAGAL! Ada masalah saat instalasi.${NC}"; fi
     pause
 }
-
 setup_env_config() {
     display_header; echo -e "\n${CYAN}--- Menu 2: Konfigurasi Bot & Model AI ---\n${NC}"; touch "$ENV_FILE"
     CURRENT_GEMINI=$(grep 'GEMINI_API_KEY' "$ENV_FILE"|cut -d'=' -f2); CURRENT_PHONE=$(grep 'PHONE_NUMBER' "$ENV_FILE"|cut -d'=' -f2); CURRENT_UNSPLASH=$(grep 'UNSPLASH_API_KEY' "$ENV_FILE"|cut -d'=' -f2); CURRENT_WEATHER=$(grep 'WEATHER_API_KEY' "$ENV_FILE"|cut -d'=' -f2)
