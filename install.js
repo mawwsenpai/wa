@@ -1,16 +1,16 @@
-// install.js - Versi 3.0 - Master Installer untuk Semua Kebutuhan
+// install.js - Versi 4.0 - Final dengan Versi Library Spesifik
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const chalk = require('chalk');
 
-// Daftar LENGKAP semua modul yang dibutuhkan oleh proyek ini
+// Daftar LENGKAP dengan versi spesifik untuk kompatibilitas
 const MODULES = [
     // Kebutuhan Server & Bot
     'express',
     'socket.io',
     '@whiskeysockets/baileys',
-    '@google/genai',
+    '@google/genai@0.2.0', // <-- VERSI LAMA YANG KOMPATIBEL
     'dotenv',
     'chalk@4',
     'axios',
