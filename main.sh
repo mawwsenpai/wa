@@ -35,9 +35,13 @@ display_header() {
 # FUNGSI DIPERBARUI: Tampilan Status lebih detail
 display_status() {
     echo -e "${PURPLE}╔═════════════════════════${NC}"
-    echo -e "${PURPLE}║  S T A T U S${NC}"
-    if command -v node &> /dev/null; then echo -e "${PURPLE}║ ${GREEN}${TICK} Node.js${NC} : Terinstal ($(node -v))"; else echo -e "${PURPLE}║ ${RED}${CROSS} Node.js${NC} : Belum terinstal"; fi
-    if [ -d "$MODULES_DIR" ]; then echo -e "${PURPLE}║ ${GREEN}${TICK} Modules${NC}   : Siap digunakan"; else echo -e "${PURPLE}║ ${RED}${CROSS} Modules${NC}   : Belum diinstal (Menu 1)"; fi
+    echo -e "${PURPLE}║ S T A T U S${NC}"
+    if command -v node &> /dev/null; then 
+    echo -e "${PURPLE}║ ${GREEN}${TICK} Node.js${NC} : Terinstal ($(node -v))"; else 
+    echo -e "${PURPLE}║ ${RED}${CROSS} Node.js${NC} : Belum terinstal"; fi
+    if [ -d "$MODULES_DIR" ]; then 
+    echo -e "${PURPLE}║ ${GREEN}${TICK} Modules${NC}   : Siap digunakan"; else 
+    echo -e "${PURPLE}║ ${RED}${CROSS} Modules${NC}   : Belum diinstal (Menu 1)"; fi
     
     # Cek semua API Key
     if [ -f "$ENV_FILE" ]; then
