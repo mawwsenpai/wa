@@ -28,5 +28,5 @@ if [ -f "ngrok" ]; then
   echo "✅ Ngrok berhasil diunduh dan diekstrak!"
   echo "Anda bisa melanjutkan ke langkah berikutnya."
 else
-  echo "❌ gagal mengekstrak Ngrok. File unduhan mungkin masih rusak."
+  echo "❌ gagal mengekstrak Ngrok.. File unduhan mungkin masih rusak."
 fi
