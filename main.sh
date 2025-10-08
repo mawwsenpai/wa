@@ -15,10 +15,10 @@ check_dependencies() {
 }
 display_header() {
     clear
-    echo -e "${CYAN}┌──────────────────────────────────────────────────────────────┐${NC}"
-    figlet -c -f slant "WhatsApp Script"
-    echo -e "${CYAN}└──────────────────────────────────────────────────────────────┘${NC}"
-    echo -e "${PURPLE}              » v6.1-Stabil by MawwSenpai «              ${NC}"
+    echo ""
+    echo -e "${CYAN}"
+    figlet -c -f smslant "Script-Wa"
+    echo -e "${PURPLE}      » v6.1-Stabil by MawwSenpai_ «      ${NC}"
     echo ""
 }
 
