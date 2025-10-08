@@ -44,7 +44,7 @@ display_status() {
     fi
 
     if [ -d "$AUTH_DIR" ] && [ -f "$AUTH_DIR/creds.json" ]; then echo -e "${PURPLE}║ ${GREEN}${TICK} Sesi WA${NC}   : Aktif"; else echo -e "${PURPLE}║ ${RED}${CROSS} Sesi WA${NC}   : Tidak aktif (Menu 3)"; fi
-    echo -e "${PURPLE}╚══════════════════════════════════════════${NC}"
+    echo -e "${PURPLE}╚═══════════${NC}"
 }
 pause() { echo ""; read -p "Tekan [Enter] untuk kembali ke menu..."; }
 
@@ -102,7 +102,7 @@ while true; do
     display_header; display_status; READY_TO_RUN=false
     if [ -d "$MODULES_DIR" ] && [ -f "$ENV_FILE" ] && grep -q "GEMINI_API_KEY=." "$ENV_FILE" && [ -d "$AUTH_DIR" ]; then READY_TO_RUN=true; fi
     echo -e "${PURPLE}╔═══════════════════════════════════════════${NC}"
-    echo -e "${PURPLE}║ M E N U   U T A M A                                                              ${NC}"
+    echo -e "${PURPLE}║ M E N U   U T A M A                       ${NC}"
     echo -e "${PURPLE}║  ${CYAN}1. Install / Update Modules${NC}                              "
     echo -e "${PURPLE}║  ${CYAN}2. Konfigurasi Bot (Semua API Key)${NC}                      "
     echo -e "${PURPLE}║  ${CYAN}3. Hubungkan Akun WhatsApp${NC}                               "
