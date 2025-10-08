@@ -1,7 +1,3 @@
-#!/bin/bash
-# =======================================================
-# main.sh (V6.1) - Full Config Menu & Detailed Status
-# =======================================================
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; PURPLE='\033[0;35m'; CYAN='\033[0;36m'; NC='\033[0m'; BOLD='\033[1m'
 TICK="✅"; CROSS="❌"; WARN="⚠️"
 ENV_FILE=".env"; INSTALL_SCRIPT="install.js"; AUTH_SCRIPT="auth.js"; MAIN_SCRIPT="main.js"; AUTH_DIR="auth_info_baileys"; MODULES_DIR="node_modules"; VERSION="V6.1"
@@ -19,9 +15,10 @@ check_dependencies() {
 }
 display_header() {
     clear
-    echo -e "${CYAN}"
-    figlet -c -f small "BOT-WHATSAPP"
-    echo -e "${PURPLE}  MawwScript v6.1-Stabil${NC}"
+    echo -e "${CYAN}┌──────────────────────────────────────────────────────────────┐${NC}"
+    figlet -c -f slant "WhatsApp Script"
+    echo -e "${CYAN}└──────────────────────────────────────────────────────────────┘${NC}"
+    echo -e "${PURPLE}              » v6.1-Stabil by MawwSenpai «              ${NC}"
     echo ""
 }
 
@@ -101,7 +98,7 @@ check_dependencies
 while true; do
     display_header; display_status; READY_TO_RUN=false
     if [ -d "$MODULES_DIR" ] && [ -f "$ENV_FILE" ] && grep -q "GEMINI_API_KEY=." "$ENV_FILE" && [ -d "$AUTH_DIR" ]; then READY_TO_RUN=true; fi
-    echo -e "${PURPLE}╔═══════════════════════════════════════════${NC}"
+    echo -e "${PURPLE}╔════════════════════════════════${NC}"
     echo -e "${PURPLE}║ M E N U   U T A M A                       ${NC}"
     echo -e "${PURPLE}║  ${CYAN}1. Install / Update Modules${NC}                              "
     echo -e "${PURPLE}║  ${CYAN}2. Konfigurasi Bot (Semua API Key)${NC}                      "
@@ -110,7 +107,7 @@ while true; do
     echo -e "${PURPLE}║  ${YELLOW}5. Reset Sesi WhatsApp${NC}                                   "
     echo -e "${PURPLE}║  ${RED}0. Keluar dari Skrip${NC}                                     "
     echo -e "${PURPLE}║                                                                 ${NC}"
-    echo -e "${PURPLE}╚═══════════════════${NC}"
+    echo -e "${PURPLE}╚═════════════${NC}"
     read -p "Masukkan pilihan Anda: " choice
     case $choice in 1) run_installation;; 2) setup_env_config;; 3) run_authentication;; 4) run_bot;; 5) reset_session;; 0) echo -e "\n${CYAN}Sampai jumpa!${NC}"; exit 0;; *) echo -e "\n${RED}Pilihan salah!${NC}"; pause;; esac
 done
