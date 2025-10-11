@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # =======================================================
-# main.py (Python Remake of V10 - Final Diagnostic)
-# Rombakan oleh: Gemini
-# Original By: MawwSenpai_
+# main.py (Versi Stabil Final)
+# Launcher & Manajer Proyek yang Ditingkatkan
+# By: MawwSenpai_ & Gemini
 # =======================================================
 
 import os
@@ -11,19 +11,21 @@ import subprocess
 import shutil
 from pathlib import Path
 
-# --- KONFIGURASI WARNA & SIMBOL (dikelola dalam kelas) ---
+# --- KONFIGURASI WARNA & SIMBOL ---
 class Style:
-    """Kelas untuk menyimpan konstanta gaya teks terminal."""
+    """Mengelola semua kode warna dan simbol untuk UI yang konsisten."""
     YELLOW = '\033[0;33m'
     PURPLE = '\033[0;35m'
     CYAN = '\033[0;36m'
     WHITE = '\033[1;37m'
-    NC = '\033[0m'  # No Color
+    GREEN = '\033[0;32m'
+    RED = '\033[0;31m'
+    NC = '\033[0m'
     BOLD = '\033[1m'
     SUCCESS_ICON = "✓"
     WARN_ICON = "⚠️"
 
-# --- NAMA FILE & VERSI (menggunakan pathlib untuk path) ---
+# --- NAMA FILE & VERSI ---
 ENV_FILE = Path(".env")
 INSTALL_SCRIPT = "install.js"
 AUTH_SCRIPT = "auth.js"
@@ -31,263 +33,191 @@ MAIN_SCRIPT = "main.js"
 GEMINI_SCRIPT = "gemini.js"
 AUTH_DIR = Path("auth_info_baileys")
 MODULES_DIR = Path("node_modules")
-VERSION = "V10 - Final - By MawwSenpai_ (Python Remake)"
+VERSION = "V11 - Stabil - Python Launcher"
 
-# --- FUNGSI BANTUAN ---
+# --- FUNGSI BANTUAN & UTILITAS ---
 def clear_screen():
-    """Membersihkan layar terminal, kompatibel untuk Windows dan Unix/Linux."""
+    """Membersihkan layar terminal."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def pause():
-    """Menjeda eksekusi hingga pengguna menekan Enter."""
+    """Menjeda skrip hingga pengguna menekan Enter."""
     print("")
-    input("Tekan [Enter] untuk kembali...")
+    input(f"{Style.CYAN}Tekan [Enter] untuk kembali ke menu...{Style.NC}")
 
 def get_env_vars():
-    """Membaca file .env dengan aman dan mengembalikannya sebagai dictionary."""
-    if not ENV_FILE.is_file():
-        return {}
+    """Membaca file .env dengan aman."""
+    if not ENV_FILE.is_file(): return {}
     env_vars = {}
     with open(ENV_FILE, 'r') as f:
         for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
+            if line.strip() and not line.strip().startswith('#') and '=' in line:
                 key, value = line.split('=', 1)
                 env_vars[key.strip()] = value.strip()
     return env_vars
 
+def run_node_script(script_name, args=[]):
+    """Fungsi terpusat untuk menjalankan skrip Node.js dengan aman."""
+    script_path = Path(script_name)
+    if not script_path.is_file():
+        print(f"\n{Style.RED}{Style.WARN_ICON} Error: File '{script_name}' tidak ditemukan!{Style.NC}")
+        return
+    
+    command = ["node", script_name] + args
+    print(f"\n{Style.CYAN}--- Menjalankan '{' '.join(command)}' ---{Style.NC}")
+    try:
+        subprocess.run(command)
+    except KeyboardInterrupt:
+        print(f"\n{Style.YELLOW}Proses dihentikan oleh pengguna.{Style.NC}")
+    except Exception as e:
+        print(f"\n{Style.RED}Terjadi error saat menjalankan skrip: {e}{Style.NC}")
+    print(f"{Style.CYAN}--- Selesai ---{Style.NC}")
+
+
 # --- FUNGSI PRASYARAT ---
 def check_dependencies():
-    """Memeriksa dependensi sistem yang diperlukan seperti node, npm, dan figlet."""
+    """Memeriksa apakah Node.js, npm, dll. terinstal."""
     print("Mengecek dependensi sistem...")
-    missing_deps = []
-    # Nama paket di 'pkg' mungkin berbeda (e.g., 'node' adalah 'nodejs')
-    dependencies_map = {"node": "nodejs", "npm": "npm", "figlet": "figlet"}
-    
-    for cmd in dependencies_map.keys():
-        if not shutil.which(cmd):
-            missing_deps.append(dependencies_map[cmd])
+    missing = [cmd for cmd in ["node", "npm"] if not shutil.which(cmd)]
+    if not missing: return
 
-    if missing_deps:
-        print(f"{Style.YELLOW}{Style.WARN_ICON} Dependensi sistem hilang: {', '.join(missing_deps)}.{Style.NC}")
-        confirm = input("Instal dependensi yang hilang? (y/n): ").lower()
-        if confirm == 'y':
-            try:
-                # Asumsi 'pkg' adalah manajer paket (untuk Termux)
-                print(f"{Style.CYAN}Menjalankan 'pkg update'...{Style.NC}")
-                subprocess.run(["pkg", "update", "-y"], check=True, capture_output=True)
-                print(f"{Style.CYAN}Menginstal: {', '.join(missing_deps)}...{Style.NC}")
-                subprocess.run(["pkg", "install", "-y"] + missing_deps, check=True)
-                print(f"{Style.CYAN}{Style.SUCCESS_ICON} Dependensi berhasil diinstal.{Style.NC}")
-            except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                print(f"{Style.YELLOW}Gagal menginstal. Pastikan Anda menggunakan Termux dan 'pkg' tersedia. Error: {e}{Style.NC}")
-                sys.exit(1)
-        else:
-            print(f"{Style.YELLOW}Skrip dibatalkan karena dependensi tidak lengkap.{Style.NC}")
+    print(f"{Style.YELLOW}{Style.WARN_ICON} Dependensi sistem hilang: {', '.join(missing)}.{Style.NC}")
+    if input("Instal dependensi (khusus Termux)? (y/n): ").lower() == 'y':
+        try:
+            subprocess.run(["pkg", "update", "-y"], check=True)
+            subprocess.run(["pkg", "install", "-y"] + [m if m != 'node' else 'nodejs' for m in missing], check=True)
+        except Exception as e:
+            print(f"{Style.RED}Gagal menginstal dependensi. Error: {e}{Style.NC}")
             sys.exit(1)
+    else:
+        print(f"{Style.YELLOW}Skrip dibatalkan.{Style.NC}"); sys.exit(1)
 
-# --- FUNGSI TAMPILAN (UI) ---
+# --- UI & STATUS ---
 def display_header():
-    """Menampilkan header skrip yang keren."""
     clear_screen()
-    print("")
-    print(f"{Style.BOLD}{Style.WHITE}Script-Whatsapp {Style.PURPLE}[{VERSION}]{Style.NC}")
+    print(f"\n{Style.BOLD}{Style.WHITE}Bot Manager {Style.PURPLE}[{VERSION}]{Style.NC}")
 
 def display_status():
-    """Menampilkan dasbor diagnostik yang lengkap dan detail."""
-    print("")
-    print(f"{Style.WHITE}--- DASBOR DIAGNOSTIK ---{Style.NC}")
-    
-    format_ok = f"  {Style.CYAN}{Style.SUCCESS_ICON} %-18s{Style.NC}: %s"
-    format_warn = f"  {Style.YELLOW}{Style.WARN_ICON} %-18s{Style.NC}: %s"
+    print(f"\n{Style.WHITE}--- DASBOR DIAGNOSTIK ---{Style.NC}")
+    status_ok = lambda name, msg: print(f"  {Style.GREEN}{Style.SUCCESS_ICON} {name:<18}{Style.NC}: {msg}")
+    status_warn = lambda name, msg: print(f"  {Style.YELLOW}{Style.WARN_ICON} {name:<18}{Style.NC}: {msg}")
 
-    # 1. Status Sistem Dasar
-    print(f"{Style.PURPLE} Kebutuhan Dasar{Style.NC}")
+    # Kebutuhan Dasar
     try:
-        node_version = subprocess.check_output(["node", "-v"], text=True).strip()
-        print(format_ok % ("Node.js", f"Terinstal ({node_version})"))
+        node_v = subprocess.check_output(["node", "-v"], text=True).strip()
+        status_ok("Node.js", f"Terinstal ({node_v})")
     except FileNotFoundError:
-        print(format_warn % ("Node.js", "Belum terinstal"))
-
-    if MODULES_DIR.is_dir():
-        print(format_ok % ("Modules", "Terinstal"))
-    else:
-        print(format_warn % ("Modules", "Belum diinstal (Menu 1)"))
-        
-    # 2. Status Konfigurasi API
-    print(f"{Style.PURPLE} Konfigurasi API (.env){Style.NC}")
-    if ENV_FILE.is_file():
-        env_vars = get_env_vars()
-        api_keys = {
-            "Kunci Gemini": "GEMINI_API_KEY", "Kunci Unsplash": "UNSPLASH_API_KEY", "Kunci Weather": "WEATHER_API_KEY",
-        }
-        for display_name, key_name in api_keys.items():
-            print(format_ok % (f"-> {display_name}", "Terisi")) if env_vars.get(key_name) else print(format_warn % (f"-> {display_name}", "KOSONG (Menu 2)"))
-    else:
-        print(format_warn % ("File .env", "TIDAK DITEMUKAN"))
-
-    # 3. Status Koneksi & File
-    print(f"{Style.PURPLE} Status Koneksi & File{Style.NC}")
-    if (AUTH_DIR / "creds.json").is_file():
-        print(format_ok % ("-> Sesi WhatsApp", "Aktif"))
-    else:
-        print(format_warn % ("-> Sesi WhatsApp", "Tidak aktif (Menu 3)"))
+        status_warn("Node.js", "Belum terinstal")
+    status_ok("Modules", "Terinstal") if MODULES_DIR.is_dir() else status_warn("Modules", "Belum diinstal (Menu 1)")
     
-    for file in [INSTALL_SCRIPT, AUTH_SCRIPT, MAIN_SCRIPT, GEMINI_SCRIPT, "script.js"]:
-        print(f"  {Style.CYAN}{Style.SUCCESS_ICON} %-18s{Style.NC}: Ditemukan" % f"File '{file}'") if Path(file).is_file() else print(f"  {Style.YELLOW}{Style.WARN_ICON} %-18s{Style.NC}: HILANG!" % f"File '{file}'")
+    # Konfigurasi & Sesi
+    env_vars = get_env_vars()
+    status_ok("File .env", "Ditemukan") if ENV_FILE.is_file() else status_warn("File .env", "TIDAK DITEMUKAN (Menu 2)")
+    status_ok("Kunci API Gemini", "Terisi") if env_vars.get("GEMINI_API_KEY") else status_warn("Kunci API Gemini", "KOSONG (Menu 2)")
+    status_ok("Sesi WhatsApp", "Aktif") if (AUTH_DIR / "creds.json").is_file() else status_warn("Sesi WhatsApp", "Tidak aktif (Menu 3)")
+
+def check_readiness():
+    """Memeriksa apakah semua komponen siap untuk menjalankan bot."""
+    env_vars = get_env_vars()
+    checks = {
+        "Folder node_modules belum ada (Jalankan Menu 1)": MODULES_DIR.is_dir(),
+        "File .env belum dikonfigurasi (Jalankan Menu 2)": ENV_FILE.is_file(),
+        "Kunci API Gemini kosong di .env (Jalankan Menu 2)": bool(env_vars.get("GEMINI_API_KEY")),
+        "Sesi WhatsApp belum terhubung (Jalankan Menu 3)": (AUTH_DIR / "creds.json").is_file(),
+    }
+    missing = [reason for reason, passed in checks.items() if not passed]
+    return not missing, missing
 
 # --- FUNGSI-FUNGSI UTAMA (MENU) ---
 def run_clean_installation():
     display_header()
     print(f"\n{Style.CYAN}--- Menu 1: Instalasi Bersih & Verifikasi ---\n{Style.NC}")
-    
-    print(f"{Style.YELLOW}Langkah 1: Pembersihan Paksa...{Style.NC}")
-    if MODULES_DIR.exists():
-        shutil.rmtree(MODULES_DIR)
-        print(f"  {Style.CYAN}{Style.SUCCESS_ICON} Folder node_modules dihapus.{Style.NC}")
-    
-    if (lock_file := Path("package-lock.json")).exists():
-        lock_file.unlink()
-        print(f"  {Style.CYAN}{Style.SUCCESS_ICON} File package-lock.json dihapus.{Style.NC}")
-        
-    print(f"\n{Style.YELLOW}Langkah 2: Menjalankan Instalasi Bersih...{Style.NC}")
-    if subprocess.run(["node", INSTALL_SCRIPT]).returncode != 0:
-        print(f"\n{Style.YELLOW}{Style.WARN_ICON} Instalasi modul gagal.{Style.NC}")
-        pause()
-        return
-        
-    print(f"\n{Style.YELLOW}Langkah 3: Verifikasi Akurat Hasil Instalasi...{Style.NC}")
-    verifications = {
-        "@google/genai": "try { require('@google/genai'); console.log('\\x1b[36m✓ @google/genai\\x1b[0m : Ditemukan & bisa diakses.'); } catch (e) { console.error('\\x1b[33m⚠️ @google/genai\\x1b[0m : GAGAL diakses!'); }",
-        "@whiskeysockets/baileys": "try { require('@whiskeysockets/baileys'); console.log('\\x1b[36m✓ @whiskeysockets/baileys\\x1b[0m : Ditemukan & bisa diakses.'); } catch (e) { console.error('\\x1b[33m⚠️ @whiskeysockets/baileys\\x1b[0m : GAGAL diakses!'); }",
-    }
-    for cmd in verifications.values():
-        subprocess.run(["node", "-e", cmd])
+    if MODULES_DIR.exists(): shutil.rmtree(MODULES_DIR); print(f"{Style.GREEN}Folder node_modules lama dihapus.{Style.NC}")
+    if (p_lock := Path("package-lock.json")).exists(): p_lock.unlink(); print(f"{Style.GREEN}File package-lock.json dihapus.{Style.NC}")
+    run_node_script(INSTALL_SCRIPT)
     pause()
 
 def setup_env_config():
-    display_header()
-    print(f"\n{Style.CYAN}--- Menu 2: Konfigurasi Bot & Model AI ---\n{Style.NC}")
-    
-    current_config = get_env_vars()
+    display_header(); print(f"\n{Style.CYAN}--- Menu 2: Konfigurasi Bot & Model AI ---\n{Style.NC}")
+    # (Kode fungsi ini sudah cukup baik, tidak perlu perubahan signifikan)
+    current_cfg = get_env_vars()
     print(f"{Style.WHITE}Isi konfigurasi, tekan [Enter] untuk memakai nilai lama.{Style.NC}")
+    get_in = lambda p, c, s=True: input(f"{p} [{(c[:5] + '...' if c and s else c)}]: ") or c
     
-    def get_input(prompt_text, current_value, is_secret=True):
-        display = f"{current_value[:5]}..." if current_value and is_secret else current_value
-        user_input = input(f"{prompt_text} [{display}]: ")
-        return user_input or current_value
-
-    new_config = {
-        "GEMINI_API_KEY": get_input("Gemini API Key", current_config.get("GEMINI_API_KEY", "")),
-        "UNSPLASH_API_KEY": get_input("Unsplash API Key", current_config.get("UNSPLASH_API_KEY", "")),
-        "WEATHER_API_KEY": get_input("WeatherAPI.com Key", current_config.get("WEATHER_API_KEY", "")),
-        "PHONE_NUMBER": get_input("Nomor WA (awalan 62)", current_config.get("PHONE_NUMBER", ""), is_secret=False)
+    cfg = {
+        "GEMINI_API_KEY": get_in("Gemini API Key", current_cfg.get("GEMINI_API_KEY", "")),
+        "PHONE_NUMBER": get_in("Nomor WA (awalan 62)", current_cfg.get("PHONE_NUMBER", ""), s=False),
+        "UNSPLASH_API_KEY": get_in("Unsplash API Key", current_cfg.get("UNSPLASH_API_KEY", "")),
+        "WEATHER_API_KEY": get_in("WeatherAPI.com Key", current_cfg.get("WEATHER_API_KEY", "")),
     }
     
-    print(f"\n{Style.BOLD}{Style.WHITE}Pilih Model Gemini:{Style.NC}\n  1. Gemini 1.5 Flash (Cepat, Rekomendasi)\n  2. Gemini 1.5 Pro (Paling Canggih)\n  3. Gemini 1.0 Pro (Klasik, Stabil)")
-    model_choice = input("Pilihan Model [1]: ")
-    new_config["GEMINI_MODEL"] = {"2": "gemini-1.5-pro-latest", "3": "gemini-1.0-pro"}.get(model_choice, "gemini-1.5-flash-latest")
+    print(f"\n{Style.BOLD}Pilih Model Gemini:{Style.NC}\n  1. Flash (Cepat)\n  2. Pro (Canggih)")
+    cfg["GEMINI_MODEL"] = "gemini-1.5-pro-latest" if input("Pilihan Model [1]: ") == "2" else "gemini-1.5-flash-latest"
     
     with open(ENV_FILE, 'w') as f:
-        f.write(f"GEMINI_API_KEY={new_config['GEMINI_API_KEY']}\nGEMINI_MODEL={new_config['GEMINI_MODEL']}\nPHONE_NUMBER={new_config['PHONE_NUMBER']}\n\n")
-        f.write(f"# Kunci API Fitur Tambahan\nUNSPLASH_API_KEY={new_config['UNSPLASH_API_KEY']}\nWEATHER_API_KEY={new_config['WEATHER_API_KEY']}\n")
-        
-    print(f"\n{Style.CYAN}{Style.SUCCESS_ICON} Konfigurasi disimpan dengan model: {Style.BOLD}{new_config['GEMINI_MODEL']}{Style.NC}")
-    pause()
+        f.write("\n".join([f"{k}={v}" for k, v in cfg.items()]))
+    
+    print(f"\n{Style.GREEN}{Style.SUCCESS_ICON} Konfigurasi disimpan ke .env{Style.NC}"); pause()
 
 def run_authentication():
-    display_header()
-    print(f"\n{Style.CYAN}--- Menu 3: Hubungkan WhatsApp ---\n{Style.NC}")
-    if not MODULES_DIR.is_dir():
-        print(f"{Style.YELLOW}Jalankan instalasi (Menu 1) dulu.{Style.NC}")
-        pause()
-        return
-
+    display_header(); print(f"\n{Style.CYAN}--- Menu 3: Hubungkan WhatsApp ---\n{Style.NC}")
+    if not MODULES_DIR.is_dir(): print(f"{Style.YELLOW}Jalankan instalasi (Menu 1) dulu.{Style.NC}"); pause(); return
     choice = input("1. Scan QR (Stabil)\n2. Kode 8 Digit\nPilihan [1]: ")
-    method = "--method=code" if choice == "2" else "--method=qr"
-    subprocess.run(["node", AUTH_SCRIPT, method])
-    pause()
+    method = "code" if choice == "2" else "qr"
+    run_node_script(AUTH_SCRIPT, [f"--method={method}"]); pause()
 
 def run_bot():
-    display_header()
-    print(f"\n{Style.CYAN}--- Menu 4: Jalankan Bot ---\n{Style.NC}")
-    
-    env_vars = get_env_vars()
-    if not all([MODULES_DIR.is_dir(), ENV_FILE.is_file(), (AUTH_DIR / "creds.json").is_file(), env_vars.get("GEMINI_API_KEY")]):
-        print(f"{Style.YELLOW}Semua status harus {Style.CYAN}✓{Style.YELLOW} dulu sebelum menjalankan bot.{Style.NC}")
-        pause()
-        return
-        
-    print("Bot online... Tekan CTRL+C untuk berhenti.")
-    try:
-        subprocess.run(["node", MAIN_SCRIPT], check=True)
-    except KeyboardInterrupt:
-        print(f"\n{Style.YELLOW}Bot dihentikan oleh pengguna.{Style.NC}")
-    except subprocess.CalledProcessError:
-        print(f"\n{Style.YELLOW}{Style.WARN_ICON} Skrip bot berhenti karena ada error.{Style.NC}")
-    pause()
+    display_header(); print(f"\n{Style.CYAN}--- Menu 4: Jalankan Bot ---\n{Style.NC}")
+    is_ready, missing = check_readiness()
+    if not is_ready:
+        print(f"{Style.YELLOW}{Style.WARN_ICON} Bot belum siap dijalankan.{Style.NC}")
+        for item in missing: print(f"   - {item}")
+        pause(); return
+    run_node_script(MAIN_SCRIPT); pause()
 
 def reset_session():
-    display_header()
-    print(f"\n{Style.YELLOW}--- Menu 5: Reset Sesi ---\n{Style.NC}")
-    if AUTH_DIR.is_dir():
-        if input("Yakin ingin menghapus semua data sesi WhatsApp? (y/n): ").lower() == 'y':
-            try:
-                shutil.rmtree(AUTH_DIR)
-                print(f"{Style.CYAN}Sesi berhasil dihapus.{Style.NC}")
-            except OSError as e:
-                print(f"{Style.YELLOW}Gagal menghapus sesi: {e}{Style.NC}")
-        else:
-            print("Penghapusan sesi dibatalkan.")
-    else:
-        print("Tidak ada sesi yang ditemukan untuk dihapus.")
+    display_header(); print(f"\n{Style.YELLOW}--- Menu 5: Reset Sesi WhatsApp ---\n{Style.NC}")
+    if not AUTH_DIR.is_dir(): print("Tidak ada sesi untuk dihapus."); pause(); return
+    if input("Yakin ingin menghapus sesi WhatsApp? (y/n): ").lower() == 'y':
+        shutil.rmtree(AUTH_DIR); print(f"{Style.GREEN}Sesi berhasil dihapus.{Style.NC}")
+    else: print("Dibatalkan.")
     pause()
 
 def run_gemini_status_check():
-    display_header()
-    print(f"\n{Style.CYAN}--- Menu 6: Cek Status API Gemini ---\n{Style.NC}")
-    if not Path(GEMINI_SCRIPT).is_file():
-        print(f"{Style.YELLOW}{Style.WARN_ICON} File '{GEMINI_SCRIPT}' tidak ditemukan!{Style.NC}")
-    else:
-        subprocess.run(["node", GEMINI_SCRIPT])
-    pause()
+    display_header(); print(f"\n{Style.CYAN}--- Menu 6: Cek Status API Gemini ---\n{Style.NC}")
+    run_node_script(GEMINI_SCRIPT); pause()
 
+# --- LOOP MENU UTAMA ---
 def main():
-    """Fungsi utama untuk menjalankan loop menu."""
+    """Fungsi utama untuk menjalankan loop menu interaktif."""
     check_dependencies()
-    
-    menu_options = {
-        '1': run_clean_installation, '2': setup_env_config, '3': run_authentication,
-        '4': run_bot, '5': reset_session, '6': run_gemini_status_check,
-        '0': lambda: print(f"\n{Style.CYAN}Sampai jumpa!{Style.NC}") or sys.exit(0)
+    menu = {
+        '1': ("Instalasi Bersih (Perbaikan Total)", run_clean_installation),
+        '2': ("Konfigurasi Bot & Model AI", setup_env_config),
+        '3': ("Hubungkan Akun WhatsApp", run_authentication),
+        '4': ("Jalankan Bot WhatsApp", run_bot),
+        '5': ("Reset Sesi WhatsApp", reset_session),
+        '6': ("Cek Status API Gemini", run_gemini_status_check),
+        '0': ("Keluar", lambda: sys.exit(f"\n{Style.CYAN}Sampai jumpa!{Style.NC}\n")),
     }
-
     while True:
-        display_header()
-        display_status()
-        
+        display_header(); display_status()
         print(f"\n{Style.WHITE}--- M E N U ---{Style.NC}")
-        print(f"  {Style.PURPLE}[1]{Style.NC} Instalasi Bersih (Perbaikan Total)")
-        print(f"  {Style.PURPLE}[2]{Style.NC} Konfigurasi Bot & Model AI")
-        print(f"  {Style.PURPLE}[3]{Style.NC} Hubungkan Akun WhatsApp")
-
-        is_ready = all([MODULES_DIR.is_dir(), ENV_FILE.is_file(), (AUTH_DIR / "creds.json").is_file(), get_env_vars().get("GEMINI_API_KEY")])
-        run_style = f"{Style.CYAN}{Style.BOLD}" if is_ready else Style.YELLOW
-        run_text = "Jalankan Bot WhatsApp" if is_ready else "Jalankan Bot WhatsApp (Belum Siap)"
-        print(f"  {Style.PURPLE}[4]{Style.NC} {run_style}{run_text}{Style.NC}")
-            
-        print(f"  {Style.PURPLE}[5]{Style.NC} Reset Sesi WhatsApp")
-        print(f"  {Style.PURPLE}[6]{Style.NC} Cek Status API Gemini")
-        print(f"  {Style.PURPLE}[0]{Style.NC} Keluar")
+        is_ready, _ = check_readiness()
+        for key, (desc, _) in menu.items():
+            if key == '4':
+                style = Style.GREEN + Style.BOLD if is_ready else Style.YELLOW
+                desc = desc if is_ready else f"{desc} (Belum Siap)"
+                print(f"  {Style.PURPLE}[{key}]{Style.NC} {style}{desc}{Style.NC}")
+            elif key != '0':
+                print(f"  {Style.PURPLE}[{key}]{Style.NC} {desc}")
+        print(f"  {Style.PURPLE}[0]{Style.NC} {menu['0'][0]}")
         
         choice = input("\nPilihan Anda: ")
-        action = menu_options.get(choice)
+        action = menu.get(choice)
         
-        if action:
-            action()
-        else:
-            print(f"\n{Style.YELLOW}Pilihan salah!{Style.NC}")
-            pause()
+        if action: action[1]()
+        else: print(f"\n{Style.RED}Pilihan salah!{Style.NC}"); pause()
 
 if __name__ == "__main__":
     main()
