@@ -1,223 +1,136 @@
-#!/usr/bin/env python3
-# =======================================================
-# main.py (Versi Stabil Final)
-# Launcher & Manajer Proyek yang Ditingkatkan
-# By: MawwSenpai_ & Gemini
-# =======================================================
+# main.py
 
-import os
-import sys
-import subprocess
-import shutil
-from pathlib import Path
+# ==============================================================================
+# Bagian 1: IMPORT SEMUA LIBRARY YANG DIBUTUHKAN
+# ==============================================================================
+import uvicorn
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from pydantic import BaseModel, EmailStr
 
-# --- KONFIGURASI WARNA & SIMBOL ---
-class Style:
-    """Mengelola semua kode warna dan simbol untuk UI yang konsisten."""
-    YELLOW = '\033[0;33m'
-    PURPLE = '\033[0;35m'
-    CYAN = '\033[0;36m'
-    WHITE = '\033[1;37m'
-    GREEN = '\033[0;32m'
-    RED = '\033[0;31m'
-    NC = '\033[0m'
-    BOLD = '\033[1m'
-    SUCCESS_ICON = "✓"
-    WARN_ICON = "⚠️"
+# ==============================================================================
+# Bagian 2: KONFIGURASI DAN SETUP DATABASE (dari database.py)
+# ==============================================================================
+# URL untuk koneksi ke database SQLite. File database akan bernama `sql_app.db`.
+SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 
-# --- NAMA FILE & VERSI ---
-ENV_FILE = Path(".env")
-INSTALL_SCRIPT = "install.js"
-AUTH_SCRIPT = "auth.js"
-MAIN_SCRIPT = "main.js"
-GEMINI_SCRIPT = "gemini.js"
-AUTH_DIR = Path("auth_info_baileys")
-MODULES_DIR = Path("node_modules")
-VERSION = "V11 - Stabil - Python Launcher"
+# Membuat 'engine' SQLAlchemy
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
 
-# --- FUNGSI BANTUAN & UTILITAS ---
-def clear_screen():
-    """Membersihkan layar terminal."""
-    os.system('cls' if os.name == 'nt' else 'clear')
+# Membuat class SessionLocal untuk sesi database
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def pause():
-    """Menjeda skrip hingga pengguna menekan Enter."""
-    print("")
-    input(f"{Style.CYAN}Tekan [Enter] untuk kembali ke menu...{Style.NC}")
+# Base class untuk model SQLAlchemy. Semua model akan mewarisi class ini.
+Base = declarative_base()
 
-def get_env_vars():
-    """Membaca file .env dengan aman."""
-    if not ENV_FILE.is_file(): return {}
-    env_vars = {}
-    with open(ENV_FILE, 'r') as f:
-        for line in f:
-            if line.strip() and not line.strip().startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                env_vars[key.strip()] = value.strip()
-    return env_vars
+# ==============================================================================
+# Bagian 3: SQLAlchemy MODELS (Struktur Tabel Database) (dari models.py)
+# ==============================================================================
+class User(Base):
+    __tablename__ = "users"
 
-def run_node_script(script_name, args=[]):
-    """Fungsi terpusat untuk menjalankan skrip Node.js dengan aman."""
-    script_path = Path(script_name)
-    if not script_path.is_file():
-        print(f"\n{Style.RED}{Style.WARN_ICON} Error: File '{script_name}' tidak ditemukan!{Style.NC}")
-        return
-    
-    command = ["node", script_name] + args
-    print(f"\n{Style.CYAN}--- Menjalankan '{' '.join(command)}' ---{Style.NC}")
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+
+# ==============================================================================
+# Bagian 4: Pydantic SCHEMAS (Bentuk Data API) (dari schemas.py)
+# ==============================================================================
+# Schema dasar untuk User, berisi data yang sama-sama dimiliki
+class UserBase(BaseModel):
+    email: EmailStr
+
+# Schema untuk membuat user baru, butuh password
+class UserCreate(UserBase):
+    password: str
+
+# Schema untuk membaca/menampilkan data user, password tidak disertakan demi keamanan
+class User(UserBase):
+    id: int
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+
+# ==============================================================================
+# Bagian 5: INISIALISASI APLIKASI FASTAPI & PEMBUATAN TABEL
+# ==============================================================================
+# Membuat instance aplikasi FastAPI
+app = FastAPI(
+    title="Aplikasi User Lengkap",
+    description="Contoh API lengkap dalam satu file main.py",
+    version="1.0.0"
+)
+
+# Perintah ini akan membuat tabel 'users' di database jika belum ada
+Base.metadata.create_all(bind=engine)
+
+# ==============================================================================
+# Bagian 6: DEPENDENCY untuk Sesi Database
+# ==============================================================================
+# Fungsi ini akan 'menyuntikkan' sesi database ke setiap request API
+# dan akan otomatis menutup sesi setelah request selesai.
+def get_db():
+    db = SessionLocal()
     try:
-        subprocess.run(command)
-    except KeyboardInterrupt:
-        print(f"\n{Style.YELLOW}Proses dihentikan oleh pengguna.{Style.NC}")
-    except Exception as e:
-        print(f"\n{Style.RED}Terjadi error saat menjalankan skrip: {e}{Style.NC}")
-    print(f"{Style.CYAN}--- Selesai ---{Style.NC}")
+        yield db
+    finally:
+        db.close()
 
+# ==============================================================================
+# Bagian 7: FUNGSI BANTUAN / LOGIKA BISNIS (CRUD Operations)
+# ==============================================================================
+def get_user_by_email(db: Session, email: str):
+    """Fungsi untuk mencari user berdasarkan email."""
+    return db.query(User).filter(User.email == email).first()
 
-# --- FUNGSI PRASYARAT ---
-def check_dependencies():
-    """Memeriksa apakah Node.js, npm, dll. terinstal."""
-    print("Mengecek dependensi sistem...")
-    missing = [cmd for cmd in ["node", "npm"] if not shutil.which(cmd)]
-    if not missing: return
-
-    print(f"{Style.YELLOW}{Style.WARN_ICON} Dependensi sistem hilang: {', '.join(missing)}.{Style.NC}")
-    if input("Instal dependensi (khusus Termux)? (y/n): ").lower() == 'y':
-        try:
-            subprocess.run(["pkg", "update", "-y"], check=True)
-            subprocess.run(["pkg", "install", "-y"] + [m if m != 'node' else 'nodejs' for m in missing], check=True)
-        except Exception as e:
-            print(f"{Style.RED}Gagal menginstal dependensi. Error: {e}{Style.NC}")
-            sys.exit(1)
-    else:
-        print(f"{Style.YELLOW}Skrip dibatalkan.{Style.NC}"); sys.exit(1)
-
-# --- UI & STATUS ---
-def display_header():
-    clear_screen()
-    print(f"\n{Style.BOLD}{Style.WHITE}Bot Manager {Style.PURPLE}[{VERSION}]{Style.NC}")
-
-def display_status():
-    print(f"\n{Style.WHITE}--- DASBOR DIAGNOSTIK ---{Style.NC}")
-    status_ok = lambda name, msg: print(f"  {Style.GREEN}{Style.SUCCESS_ICON} {name:<18}{Style.NC}: {msg}")
-    status_warn = lambda name, msg: print(f"  {Style.YELLOW}{Style.WARN_ICON} {name:<18}{Style.NC}: {msg}")
-
-    # Kebutuhan Dasar
-    try:
-        node_v = subprocess.check_output(["node", "-v"], text=True).strip()
-        status_ok("Node.js", f"Terinstal ({node_v})")
-    except FileNotFoundError:
-        status_warn("Node.js", "Belum terinstal")
-    status_ok("Modules", "Terinstal") if MODULES_DIR.is_dir() else status_warn("Modules", "Belum diinstal (Menu 1)")
+def create_user_db(db: Session, user: UserCreate):
+    """
+    Fungsi untuk membuat user baru di database.
+    CATATAN PENTING: Di aplikasi nyata, JANGAN simpan password sebagai plain text.
+    Gunakan library seperti passlib untuk hashing. Ini hanya contoh.
+    """
+    # Contoh hashing password yang sangat sederhana (JANGAN DITIRU DI PRODUKSI)
+    fake_hashed_password = user.password + "notreallyhashed"
     
-    # Konfigurasi & Sesi
-    env_vars = get_env_vars()
-    status_ok("File .env", "Ditemukan") if ENV_FILE.is_file() else status_warn("File .env", "TIDAK DITEMUKAN (Menu 2)")
-    status_ok("Kunci API Gemini", "Terisi") if env_vars.get("GEMINI_API_KEY") else status_warn("Kunci API Gemini", "KOSONG (Menu 2)")
-    status_ok("Sesi WhatsApp", "Aktif") if (AUTH_DIR / "creds.json").is_file() else status_warn("Sesi WhatsApp", "Tidak aktif (Menu 3)")
+    db_user = User(email=user.email, hashed_password=fake_hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
-def check_readiness():
-    """Memeriksa apakah semua komponen siap untuk menjalankan bot."""
-    env_vars = get_env_vars()
-    checks = {
-        "Folder node_modules belum ada (Jalankan Menu 1)": MODULES_DIR.is_dir(),
-        "File .env belum dikonfigurasi (Jalankan Menu 2)": ENV_FILE.is_file(),
-        "Kunci API Gemini kosong di .env (Jalankan Menu 2)": bool(env_vars.get("GEMINI_API_KEY")),
-        "Sesi WhatsApp belum terhubung (Jalankan Menu 3)": (AUTH_DIR / "creds.json").is_file(),
-    }
-    missing = [reason for reason, passed in checks.items() if not passed]
-    return not missing, missing
+# ==============================================================================
+# Bagian 8: API ENDPOINTS (Rute API)
+# ==============================================================================
+@app.get("/")
+def read_root():
+    """Endpoint utama untuk menyapa."""
+    return {"message": "Selamat datang di API User Lengkap!"}
 
-# --- FUNGSI-FUNGSI UTAMA (MENU) ---
-def run_clean_installation():
-    display_header()
-    print(f"\n{Style.CYAN}--- Menu 1: Instalasi Bersih & Verifikasi ---\n{Style.NC}")
-    if MODULES_DIR.exists(): shutil.rmtree(MODULES_DIR); print(f"{Style.GREEN}Folder node_modules lama dihapus.{Style.NC}")
-    if (p_lock := Path("package-lock.json")).exists(): p_lock.unlink(); print(f"{Style.GREEN}File package-lock.json dihapus.{Style.NC}")
-    run_node_script(INSTALL_SCRIPT)
-    pause()
-
-def setup_env_config():
-    display_header(); print(f"\n{Style.CYAN}--- Menu 2: Konfigurasi Bot & Model AI ---\n{Style.NC}")
-    # (Kode fungsi ini sudah cukup baik, tidak perlu perubahan signifikan)
-    current_cfg = get_env_vars()
-    print(f"{Style.WHITE}Isi konfigurasi, tekan [Enter] untuk memakai nilai lama.{Style.NC}")
-    get_in = lambda p, c, s=True: input(f"{p} [{(c[:5] + '...' if c and s else c)}]: ") or c
+@app.post("/users/", response_model=User)
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    Endpoint untuk membuat user baru.
+    - Menerima data user (email & password) sesuai schema UserCreate.
+    - Menggunakan dependency get_db untuk mendapatkan sesi database.
+    - Mengembalikan data user sesuai schema User (tanpa password).
+    """
+    db_user = get_user_by_email(db, email=user.email)
+    if db_user:
+        # Jika email sudah terdaftar, kembalikan error 400
+        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
     
-    cfg = {
-        "GEMINI_API_KEY": get_in("Gemini API Key", current_cfg.get("GEMINI_API_KEY", "")),
-        "PHONE_NUMBER": get_in("Nomor WA (awalan 62)", current_cfg.get("PHONE_NUMBER", ""), s=False),
-        "UNSPLASH_API_KEY": get_in("Unsplash API Key", current_cfg.get("UNSPLASH_API_KEY", "")),
-        "WEATHER_API_KEY": get_in("WeatherAPI.com Key", current_cfg.get("WEATHER_API_KEY", "")),
-    }
-    
-    print(f"\n{Style.BOLD}Pilih Model Gemini:{Style.NC}\n  1. Flash (Cepat)\n  2. Pro (Canggih)")
-    cfg["GEMINI_MODEL"] = "gemini-1.5-pro-latest" if input("Pilihan Model [1]: ") == "2" else "gemini-1.5-flash-latest"
-    
-    with open(ENV_FILE, 'w') as f:
-        f.write("\n".join([f"{k}={v}" for k, v in cfg.items()]))
-    
-    print(f"\n{Style.GREEN}{Style.SUCCESS_ICON} Konfigurasi disimpan ke .env{Style.NC}"); pause()
+    # Jika email belum ada, panggil fungsi untuk membuat user baru
+    return create_user_db(db=db, user=user)
 
-def run_authentication():
-    display_header(); print(f"\n{Style.CYAN}--- Menu 3: Hubungkan WhatsApp ---\n{Style.NC}")
-    if not MODULES_DIR.is_dir(): print(f"{Style.YELLOW}Jalankan instalasi (Menu 1) dulu.{Style.NC}"); pause(); return
-    choice = input("1. Scan QR (Stabil)\n2. Kode 8 Digit\nPilihan [1]: ")
-    method = "code" if choice == "2" else "qr"
-    run_node_script(AUTH_SCRIPT, [f"--method={method}"]); pause()
-
-def run_bot():
-    display_header(); print(f"\n{Style.CYAN}--- Menu 4: Jalankan Bot ---\n{Style.NC}")
-    is_ready, missing = check_readiness()
-    if not is_ready:
-        print(f"{Style.YELLOW}{Style.WARN_ICON} Bot belum siap dijalankan.{Style.NC}")
-        for item in missing: print(f"   - {item}")
-        pause(); return
-    run_node_script(MAIN_SCRIPT); pause()
-
-def reset_session():
-    display_header(); print(f"\n{Style.YELLOW}--- Menu 5: Reset Sesi WhatsApp ---\n{Style.NC}")
-    if not AUTH_DIR.is_dir(): print("Tidak ada sesi untuk dihapus."); pause(); return
-    if input("Yakin ingin menghapus sesi WhatsApp? (y/n): ").lower() == 'y':
-        shutil.rmtree(AUTH_DIR); print(f"{Style.GREEN}Sesi berhasil dihapus.{Style.NC}")
-    else: print("Dibatalkan.")
-    pause()
-
-def run_gemini_status_check():
-    display_header(); print(f"\n{Style.CYAN}--- Menu 6: Cek Status API Gemini ---\n{Style.NC}")
-    run_node_script(GEMINI_SCRIPT); pause()
-
-# --- LOOP MENU UTAMA ---
-def main():
-    """Fungsi utama untuk menjalankan loop menu interaktif."""
-    check_dependencies()
-    menu = {
-        '1': ("Instalasi Bersih (Perbaikan Total)", run_clean_installation),
-        '2': ("Konfigurasi Bot & Model AI", setup_env_config),
-        '3': ("Hubungkan Akun WhatsApp", run_authentication),
-        '4': ("Jalankan Bot WhatsApp", run_bot),
-        '5': ("Reset Sesi WhatsApp", reset_session),
-        '6': ("Cek Status API Gemini", run_gemini_status_check),
-        '0': ("Keluar", lambda: sys.exit(f"\n{Style.CYAN}Sampai jumpa!{Style.NC}\n")),
-    }
-    while True:
-        display_header(); display_status()
-        print(f"\n{Style.WHITE}--- M E N U ---{Style.NC}")
-        is_ready, _ = check_readiness()
-        for key, (desc, _) in menu.items():
-            if key == '4':
-                style = Style.GREEN + Style.BOLD if is_ready else Style.YELLOW
-                desc = desc if is_ready else f"{desc} (Belum Siap)"
-                print(f"  {Style.PURPLE}[{key}]{Style.NC} {style}{desc}{Style.NC}")
-            elif key != '0':
-                print(f"  {Style.PURPLE}[{key}]{Style.NC} {desc}")
-        print(f"  {Style.PURPLE}[0]{Style.NC} {menu['0'][0]}")
-        
-        choice = input("\nPilihan Anda: ")
-        action = menu.get(choice)
-        
-        if action: action[1]()
-        else: print(f"\n{Style.RED}Pilihan salah!{Style.NC}"); pause()
-
+# ==============================================================================
+# Bagian 9: (Opsional) Menjalankan server dengan Uvicorn jika file ini dieksekusi
+# ==============================================================================
 if __name__ == "__main__":
-    main()
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
