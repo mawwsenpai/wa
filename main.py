@@ -3,54 +3,58 @@
 # ==============================================================================
 # Bagian 1: IMPORT SEMUA LIBRARY YANG DIBUTUHKAN
 # ==============================================================================
+# Pastikan semua ini sudah di-install dengan `pip install fastapi "uvicorn[standard]" sqlalchemy pydantic`
 import uvicorn
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel, EmailStr
+from typing import List # Diperlukan untuk response model list
 
 # ==============================================================================
-# Bagian 2: KONFIGURASI DAN SETUP DATABASE (dari database.py)
+# Bagian 2: KONFIGURASI DAN SETUP DATABASE (Stabil)
 # ==============================================================================
-# URL untuk koneksi ke database SQLite. File database akan bernama `sql_app.db`.
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+# URL database SQLite. File akan otomatis dibuat di folder yang sama.
+SQLALCHEMY_DATABASE_URL = "sqlite:///./app_database.db"
 
-# Membuat 'engine' SQLAlchemy
+# Buat 'engine' SQLAlchemy dengan connect_args untuk SQLite
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 
-# Membuat class SessionLocal untuk sesi database
+# Buat class SessionLocal untuk membuat sesi database
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class untuk model SQLAlchemy. Semua model akan mewarisi class ini.
+# Base class untuk semua model SQLAlchemy. Ini wajib ada.
 Base = declarative_base()
 
 # ==============================================================================
-# Bagian 3: SQLAlchemy MODELS (Struktur Tabel Database) (dari models.py)
+# Bagian 3: SQLAlchemy MODELS (Struktur Tabel Database)
 # ==============================================================================
+# Model ini akan menjadi tabel 'users' di database
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
 
 # ==============================================================================
-# Bagian 4: Pydantic SCHEMAS (Bentuk Data API) (dari schemas.py)
+# Bagian 4: Pydantic SCHEMAS (Validasi Data API)
 # ==============================================================================
-# Schema dasar untuk User, berisi data yang sama-sama dimiliki
+# Schema dasar untuk User
 class UserBase(BaseModel):
     email: EmailStr
 
-# Schema untuk membuat user baru, butuh password
+# Schema untuk membuat user baru (membutuhkan password)
 class UserCreate(UserBase):
     password: str
 
-# Schema untuk membaca/menampilkan data user, password tidak disertakan demi keamanan
-class User(UserBase):
+# Schema untuk menampilkan data user (tanpa password)
+# Ini yang akan dikirim sebagai response ke client
+class UserSchema(UserBase):
     id: int
     is_active: bool
 
@@ -58,23 +62,24 @@ class User(UserBase):
         orm_mode = True
 
 # ==============================================================================
-# Bagian 5: INISIALISASI APLIKASI FASTAPI & PEMBUATAN TABEL
+# Bagian 5: INISIALISASI APLIKASI FASTAPI
 # ==============================================================================
-# Membuat instance aplikasi FastAPI
-app = FastAPI(
-    title="Aplikasi User Lengkap",
-    description="Contoh API lengkap dalam satu file main.py",
-    version="1.0.0"
-)
-
-# Perintah ini akan membuat tabel 'users' di database jika belum ada
+# Membuat tabel di database (jika belum ada) saat aplikasi pertama kali jalan
+# Ini adalah langkah penting!
 Base.metadata.create_all(bind=engine)
 
+app = FastAPI(
+    title="API Stabil Anti Rewel",
+    description="Contoh API lengkap, utuh, dan stabil dalam satu file.",
+    version="2.0.0"
+)
+
 # ==============================================================================
-# Bagian 6: DEPENDENCY untuk Sesi Database
+# Bagian 6: DEPENDENCY UNTUK DATABASE SESSION (Penting!)
 # ==============================================================================
-# Fungsi ini akan 'menyuntikkan' sesi database ke setiap request API
-# dan akan otomatis menutup sesi setelah request selesai.
+# Fungsi ini adalah 'nyawa' dari koneksi database kita.
+# Dia akan membuka koneksi saat endpoint dipanggil dan otomatis menutupnya setelah selesai.
+# Ini mencegah kebocoran koneksi dan membuat aplikasi lebih stabil.
 def get_db():
     db = SessionLocal()
     try:
@@ -83,20 +88,20 @@ def get_db():
         db.close()
 
 # ==============================================================================
-# Bagian 7: FUNGSI BANTUAN / LOGIKA BISNIS (CRUD Operations)
+# Bagian 7: FUNGSI BANTUAN / REPOSITORY (Logika Bisnis)
 # ==============================================================================
+# Memisahkan logika database dari endpoint membuat kode lebih bersih
+
 def get_user_by_email(db: Session, email: str):
-    """Fungsi untuk mencari user berdasarkan email."""
     return db.query(User).filter(User.email == email).first()
 
+def get_all_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(User).offset(skip).limit(limit).all()
+
 def create_user_db(db: Session, user: UserCreate):
-    """
-    Fungsi untuk membuat user baru di database.
-    CATATAN PENTING: Di aplikasi nyata, JANGAN simpan password sebagai plain text.
-    Gunakan library seperti passlib untuk hashing. Ini hanya contoh.
-    """
-    # Contoh hashing password yang sangat sederhana (JANGAN DITIRU DI PRODUKSI)
-    fake_hashed_password = user.password + "notreallyhashed"
+    # Di aplikasi production, JANGAN PERNAH simpan password mentah!
+    # Gunakan library seperti passlib. bcrypt.hash(user.password)
+    fake_hashed_password = user.password + "hashbuatcontoh"
     
     db_user = User(email=user.email, hashed_password=fake_hashed_password)
     db.add(db_user)
@@ -105,32 +110,26 @@ def create_user_db(db: Session, user: UserCreate):
     return db_user
 
 # ==============================================================================
-# Bagian 8: API ENDPOINTS (Rute API)
+# Bagian 8: API ENDPOINTS (Rute-rute API)
 # ==============================================================================
+# Endpoint root untuk cek apakah API berjalan
 @app.get("/")
 def read_root():
-    """Endpoint utama untuk menyapa."""
-    return {"message": "Selamat datang di API User Lengkap!"}
+    return {"status": "API berjalan dengan lancar, cuy!"}
 
-@app.post("/users/", response_model=User)
+# Endpoint untuk membuat user baru
+@app.post("/users/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    """
-    Endpoint untuk membuat user baru.
-    - Menerima data user (email & password) sesuai schema UserCreate.
-    - Menggunakan dependency get_db untuk mendapatkan sesi database.
-    - Mengembalikan data user sesuai schema User (tanpa password).
-    """
     db_user = get_user_by_email(db, email=user.email)
     if db_user:
-        # Jika email sudah terdaftar, kembalikan error 400
-        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
-    
-    # Jika email belum ada, panggil fungsi untuk membuat user baru
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email sudah terdaftar, coba email lain."
+        )
     return create_user_db(db=db, user=user)
 
-# ==============================================================================
-# Bagian 9: (Opsional) Menjalankan server dengan Uvicorn jika file ini dieksekusi
-# ==============================================================================
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-
+# Endpoint untuk mengambil semua data user
+@app.get("/users/", response_model=List[UserSchema])
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = get_all_users(db, skip=skip, limit=limit)
+    return users
